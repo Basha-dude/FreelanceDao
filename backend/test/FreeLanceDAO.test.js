@@ -2,16 +2,35 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("FreeLanceDAO", function () {
-  let freeLanceDAO, freelancer1, myGovernor, governanceToken, owner, PROPOSERS1, PROPOSERS2, PROPOSERS3, EXECUTORS1, EXECUTORS2, EXECUTORS3, timeLock;
-  
+  let freeLanceDAO, freelancer1,
+   client1,myGovernor, governanceToken,
+    owner, PROPOSERS1, PROPOSERS2, PROPOSERS3,
+     EXECUTORS1, EXECUTORS2, EXECUTORS3,
+      timeLock,creator;
+
+      
+      const ProjectName = "firstProject"; 
+      const Project2Name = "secondProject";
+      const projectId =1;
+      const creatorOrOwner = creator;
+      const description = "it is first project";
+      const description2 = "it is second project";
+      const ProjectType = "blockchain"
+      const amount = ethers.parseEther("10")
+      const isPaidToContract = false;
+      const isPaidToFreelancer = false
+      const isCanceled = false
+      const completed = false
+
   const ETHUSDPriceFeed = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
   const PROPOSERS = [];
   const EXECUTORS = [];
   const VotingDelay = 7200; // 1 day
   const VotingPeriod = 50400; // 1 week
-  
+  const address1 ='0x0000000000000000000000000000000000000001'
+
   before(async function () {
-    [owner, PROPOSERS1, PROPOSERS2, PROPOSERS3, EXECUTORS1, EXECUTORS2, EXECUTORS3,freelancer1] = await ethers.getSigners();
+    [owner,client1, PROPOSERS1,creator, PROPOSERS2, PROPOSERS3, EXECUTORS1, EXECUTORS2, EXECUTORS3,freelancer1] = await ethers.getSigners();
     
     // Deploy Governance Token
     const GovernanceToken = await ethers.getContractFactory("GovernanceToken");
@@ -67,10 +86,11 @@ describe("FreeLanceDAO", function () {
     
     // Deploy FreeLanceDAO
     const FreeLanceDAO = await ethers.getContractFactory("FreeLanceDAO");
-    freeLanceDAO = await FreeLanceDAO.deploy(ETHUSDPriceFeed, myGovernor.target);
+    freeLanceDAO = await FreeLanceDAO.deploy(ETHUSDPriceFeed, timeLock.target);
   });
 
   describe("Deployment", function () {
+
     it("Should deploy all contracts successfully", async function () {
       expect(await governanceToken.target).to.be.properAddress;
       expect(await timeLock.target).to.be.properAddress;
@@ -106,5 +126,120 @@ describe("FreeLanceDAO", function () {
          const freelancerCount = await freeLanceDAO.getFreelancerCount();  
          expect(freelancerCount).to.equal(1);
     });
+ 
+    it("should be reverted when non-governance tries to update governance", async function () {
+      // Using owner (non-governance) should revert
+      await expect(
+        freeLanceDAO.connect(owner).updateGovernance(ethers.ZeroAddress)
+      ).to.be.revertedWith("Caller is not the governance contract");
+    });
+  
+    it("should be reverted when governance tries to update with zero address", async function () {
+      // Verify the TimeLock contract address
+      const timeLocksAddress = await timeLock.target;
+      console.log("TimeLock Address:", timeLocksAddress);
+
+    
+      // Verify the current governance address
+      const currentGovernance = await freeLanceDAO.getGovernanceAddress();
+      console.log("Current Governance Address:", currentGovernance);
+    
+      // Ensure TimeLock is set as governance
+      expect(currentGovernance).to.equal(timeLocksAddress);
+    
+      // Fund the TimeLock contract address with Ether to cover gas fees
+      await owner.sendTransaction({
+        to: timeLocksAddress,
+        value: ethers.parseEther("1"), // Send 1 Ether to cover gas fees
+      });
+    
+      // Impersonate the TimeLock contract
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [timeLocksAddress],
+      });
+    
+      // Get a signer for the TimeLock contract
+      const timeLockSigner = await ethers.getSigner(timeLocksAddress);
+    
+      // Attempt to update governance with a zero address
+      await expect(
+        freeLanceDAO.connect(timeLockSigner).updateGovernance(ethers.ZeroAddress)
+      ).to.be.revertedWith("Invalid governance contract address");
+    
+      // Stop impersonating the account
+      await hre.network.provider.request({
+        method: "hardhat_stopImpersonatingAccount",
+        params: [timeLocksAddress],
+      });
+    });
+
+    //getClients
+    it("should enroll clients", async function () {
+      const clients = await freeLanceDAO.getClients();
+      console.log("clients",clients);
+      expect(clients.length).to.equal(0);    
+    });
+
+    it("should enroll clients", async function () {
+       await freeLanceDAO.connect(client1).enrollClient();
+       const clients =  await freeLanceDAO.getClients();
+      console.log("clients",clients);
+      expect(clients.length).to.equal(1);    
+    });
   });
+  describe('CREATE PROJECT',  () => { 
+    it("should give correct name", async function () {
+      let getTotalProjects = await freeLanceDAO.getTotalProjects()
+      console.log("getTotalProjects",getTotalProjects);
+      
+      await freeLanceDAO.connect(creator).createProject(
+          ProjectName, 
+          ProjectType, 
+          description, 
+          7200, 
+          amount, 
+          false, 
+          { value: amount + (ethers.parseEther("1")) }
+      );
+      getTotalProjects = await freeLanceDAO.getTotalProjects()
+      console.log("getTotalProjects first create Project",getTotalProjects);
+
+      await freeLanceDAO.connect(creator).createProject(
+        Project2Name, 
+        ProjectType, 
+        description2, 
+        7200, 
+        amount, 
+        false, 
+        { value: amount + (ethers.parseEther("1")) }
+    );
+     getTotalProjects = await freeLanceDAO.getTotalProjects()
+      console.log("getTotalProjects second create Project",getTotalProjects);
+
+      let PROJECT = await freeLanceDAO.idToProject(1);
+      console.log("Project Details:", PROJECT);
+
+      expect(PROJECT.name).to.equal(ProjectName);
+      expect(PROJECT.projectId).to.equal(1);
+      expect(PROJECT.creatorOrOwner).to.equal(creator.address);
+      expect(PROJECT.description).to.equal(description);
+      expect(PROJECT.projectType).to.equal(ProjectType);
+      expect(PROJECT.isPaidToContract).to.equal(true);
+      expect(PROJECT.isPaidToFreelancer).to.equal(false);
+      expect(PROJECT.isCanceled).to.equal(false);
+
+       PROJECT = await freeLanceDAO.idToProject(2);
+       console.log("Project Details:", PROJECT);
+       expect(PROJECT.name).to.equal(Project2Name);
+      expect(PROJECT.projectId).to.equal(2);
+      expect(PROJECT.creatorOrOwner).to.equal(creator.address);
+      expect(PROJECT.description).to.equal(description2);
+      expect(PROJECT.projectType).to.equal(ProjectType);
+      expect(PROJECT.isPaidToContract).to.equal(true);
+      expect(PROJECT.isPaidToFreelancer).to.equal(false);
+      expect(PROJECT.isCanceled).to.equal(false);
+  });
+  
+   })
 });

@@ -20,7 +20,7 @@ contract FreeLanceDAO {
 //price feed kuda add chesi, freelancers enroll avvadaaniki enni dollars oo kuda chudaali
 
   mapping (address => uint) ownerToProjectId;
-  mapping (uint256 => Project) idToProject;
+  mapping (uint256 => Project) public idToProject;
  mapping (uint =>  bool) isProjectPickedByAnyFreelancer; 
  mapping (uint => address[]) freelancersApplaiedforProject;
  mapping (uint => mapping (address => bool)) hasFreelancerApplied;   
@@ -119,10 +119,10 @@ contract FreeLanceDAO {
           totalPlatformFees += fee;
         }
          
-        uint256 projectId = totalProjects++;
+         totalProjects++;
        
       Project memory project = Project({
-             projectId: projectId,
+             projectId: totalProjects,
              creatorOrOwner: payable(msg.sender),
               name: _name,
               projectType: _projectType,
@@ -135,8 +135,8 @@ contract FreeLanceDAO {
               completed:false
         });
          projects.push(project);
-          idToProject[projectId] = project;
-          isProjectPickedByAnyFreelancer[projectId] = false;
+          idToProject[totalProjects] = project;
+          isProjectPickedByAnyFreelancer[totalProjects] = false;
 
     }
 
@@ -238,7 +238,7 @@ contract FreeLanceDAO {
     }
 
  
-function setPlatformFee(uint256 newFee) public //onlyOwner
+function setPlatformFee(uint256 newFee) public onlyGovernance //onlyOwner
  {
     platformFee = newFee;
 }
