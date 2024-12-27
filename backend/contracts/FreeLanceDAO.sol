@@ -174,7 +174,7 @@ contract FreeLanceDAO {
         return ethEquivalent;
     }
 
-    function applyForTheProject(uint256 projectId) public returns (bool) {
+      function applyForTheProject(uint256 projectId) public returns (bool) {
         Project memory project = idToProject[projectId];
         require(projectId < totalProjects, "Invalid project ID");
         require(

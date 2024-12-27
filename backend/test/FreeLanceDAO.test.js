@@ -6,12 +6,11 @@ describe("FreeLanceDAO", function () {
    client1,myGovernor, governanceToken,
     owner, PROPOSERS1, PROPOSERS2, PROPOSERS3,
      EXECUTORS1, EXECUTORS2, EXECUTORS3,
-      timeLock,creator,ETHUSDPrice,mockV3Aggregator;
+      timeLock,creator,ETHUSDPrice,mockV3Aggregator
+      ,freelancer2,freelancer3;
 
        const DECIMALS = 8;
       const ETH_USD_PRICE = 300000000000;
-
-      
       const ProjectName = "firstProject"; 
       const Project2Name = "secondProject";
       const Project3Name = "thirdProject";
@@ -19,6 +18,7 @@ describe("FreeLanceDAO", function () {
       const description = "it is first project";
       const description2 = "it is second project";
       const ProjectType = "blockchain"
+      const deadline = Math.floor(Date.now() / 1000) + 7200;
       const amount = ethers.parseEther("10")
       const isPaidToContract = false;
       const isPaidToFreelancer = false
@@ -38,7 +38,7 @@ describe("FreeLanceDAO", function () {
 
 
   before(async function () {
-    [owner,client1, PROPOSERS1,creator, PROPOSERS2, PROPOSERS3, EXECUTORS1, EXECUTORS2, EXECUTORS3,freelancer1] = await ethers.getSigners();
+    [owner,client1, PROPOSERS1,creator, PROPOSERS2, PROPOSERS3, EXECUTORS1, EXECUTORS2, EXECUTORS3,freelancer1,freelancer2,freelancer3] = await ethers.getSigners();
     
 
     const MockV3Aggregator = await ethers.getContractFactory("MockV3Aggregator");
@@ -211,7 +211,7 @@ describe("FreeLanceDAO", function () {
           ProjectName, 
           ProjectType, 
           description, 
-          7200, 
+          deadline, 
           amount, 
           false, 
           { value: amount + (ethers.parseEther("1")) }
@@ -223,7 +223,7 @@ describe("FreeLanceDAO", function () {
         Project2Name, 
         ProjectType, 
         description2, 
-        7200, 
+        deadline, 
         amount, 
         false, 
         { value: amount + (ethers.parseEther("1")) }
@@ -291,7 +291,7 @@ console.log("Mock Price Feed Answer from test:", answer.toString()); //300_000_0
     Project3Name, 
     ProjectType, 
     description, 
-    7200, 
+    deadline, 
     amountInUsd, 
     false, 
     { value: price + (ethers.parseEther("1"))}
@@ -302,9 +302,24 @@ let PROJECT = await freeLanceDAO.idToProject(3);
 // console.log("Project Details:", PROJECT);
      expect(PROJECT.name).to.be.equal(Project3Name)
  })
+
+ it("should apply For The Project ", async function () {
+  let getTotalProjects = await freeLanceDAO.getTotalProjects()
+  console.log("gettotalprojects",getTotalProjects);
+  
+  await freeLanceDAO.connect(freelancer1).applyForTheProject(1);
+  const project = await freeLanceDAO.idToProject(1);
+// console.log("Current Block Timestamp:", (await ethers.provider.getBlock("latest")).timestamp);
+// console.log("Project Deadline:", project.deadline.toString());
+
+ let appliedFreelancers =  await freeLanceDAO.getFreelancersForProject(1)
+ expect(appliedFreelancers.length).to.be.greaterThan(0)
+});
+
+it("should revert apply For The Project", async function () {    
+ await expect( freeLanceDAO.connect(freelancer1).applyForTheProject(10)).to.be.revertedWith("Invalid project ID")
+});
   
    })
-
-   
 
 });
