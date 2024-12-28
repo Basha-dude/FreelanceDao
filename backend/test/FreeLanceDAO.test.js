@@ -9,6 +9,15 @@ describe("FreeLanceDAO", function () {
       timeLock,creator,ETHUSDPrice,mockV3Aggregator
       ,freelancer2,freelancer3;
 
+
+      const freelancer1Name = "freelancer1";
+      const freelancer2Name = "freelancer2";
+
+        let skills = "react.js,solidity";
+        let bio = "'m a passionate Web3 freelancer.";
+        let rating = 1;
+    
+
        const DECIMALS = 8;
       const ETH_USD_PRICE = 300000000000;
       const ProjectName = "firstProject"; 
@@ -135,12 +144,7 @@ describe("FreeLanceDAO", function () {
       // console.log("votingPeriodH",priceFeedH);
       expect(priceFeedH).to.equal(mockV3Aggregator.target);
     });
-    it("Enrolling free lancer ", async function () {
-         await freeLanceDAO.connect(freelancer1).enrollFreelancer();         
-         const freelancerCount = await freeLanceDAO.getFreelancerCount();  
-         expect(freelancerCount).to.equal(1);
-    });
- 
+  
     it("should be reverted when non-governance tries to update governance", async function () {
       // Using owner (non-governance) should revert
       await expect(
@@ -302,12 +306,21 @@ let PROJECT = await freeLanceDAO.idToProject(3);
 // console.log("Project Details:", PROJECT);
      expect(PROJECT.name).to.be.equal(Project3Name)
  })
+ it("Enrolling free lancer ", async function () {
+        
+await freeLanceDAO.connect(freelancer1).enrollFreelancer(freelancer1Name,skills,bio);   
+await freeLanceDAO.connect(freelancer2).enrollFreelancer(freelancer2Name,skills,bio);      
+const freelancers = await freeLanceDAO.getFreelancers();
+expect(freelancers.length).to.be.greaterThan(0)
+const freelancerCount = await freeLanceDAO.getFreelancerCount();  
+expect(freelancerCount).to.equal(2);
+});
 
  it("should apply For The Project ", async function () {
-  let getTotalProjects = await freeLanceDAO.getTotalProjects()
-  console.log("gettotalprojects",getTotalProjects);
-  
-  await freeLanceDAO.connect(freelancer1).applyForTheProject(1);
+     
+ await freeLanceDAO.connect(freelancer1).applyForTheProject(1);
+  await freeLanceDAO.connect(freelancer2).applyForTheProject(1);
+
   const project = await freeLanceDAO.idToProject(1);
 // console.log("Current Block Timestamp:", (await ethers.provider.getBlock("latest")).timestamp);
 // console.log("Project Deadline:", project.deadline.toString());

@@ -30,6 +30,7 @@ contract FreeLanceDAO {
     mapping(uint => address) idToselectedFreelancer;
     mapping(address => FreelancerProfile) freelancerProfiles;
     mapping(uint => bool) disputes;
+    mapping (address => bool) isFreelancerEnrolled;
 
     struct Project {
         uint256 projectId;
@@ -49,7 +50,8 @@ contract FreeLanceDAO {
         string name;
         string skills;
         string bio;
-    }
+        uint256 rating;
+    } 
 
     modifier onlyGovernance() {
         require(
@@ -69,15 +71,19 @@ contract FreeLanceDAO {
         daoGovernance = _governanceContract;
     }
 
-    function enrollFreelancer() public {
+    function enrollFreelancer( string memory _name, string memory _skills, string memory _bio) public {
+        require(!isFreelancerEnrolled[msg.sender], "already enrolled");
         for (uint i = 0; i < freelancers.length; i++) {
             require(
                 freelancers[i] != msg.sender,
                 "Freelancer already enrolled"
             );
         }
+        
+        freelancerProfiles[msg.sender]= FreelancerProfile(_name,_skills,_bio,0);
         freelancers.push(msg.sender);
-    }
+        isFreelancerEnrolled[msg.sender] = true;
+     }     
 
     function updateGovernance(
         address newGovernanceContract
@@ -193,11 +199,11 @@ contract FreeLanceDAO {
             !hasFreelancerApplied[projectId][msg.sender],
             "You have already applied for this project"
         );
+        require(isFreelancerEnrolled[msg.sender], "need to enroll first");
         freelancersApplaiedforProject[projectId].push(msg.sender);
 
         return true;
     }
-
     function selectingFreelancer(uint256 projectId) public {
         Project storage project = idToProject[projectId];
         require(
@@ -342,12 +348,16 @@ contract FreeLanceDAO {
     function updatefreelancerProfile(
         string memory name,
         string memory bio,
-        string memory skills
+        string memory skills,
+        uint256 rating
     ) public returns (bool) {
+       
+       
         freelancerProfiles[msg.sender] = FreelancerProfile({
             name: name,
             bio: bio,
-            skills: skills
+            skills: skills,
+            rating:rating
         });
 
         return true;
@@ -557,5 +567,9 @@ contract FreeLanceDAO {
 
     function getFreelancerCount() public view returns (uint256) {
         return freelancers.length;
+    }
+
+    function isFreelancerEnrolledOrNot(address _user) public returns(bool) {
+       return isFreelancerEnrolled[_user];
     }
 }
