@@ -1,5 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { BigNumber } = ethers;
+
 
 describe("FreeLanceDAO", function () {
   let freeLanceDAO, freelancer1,
@@ -28,11 +30,13 @@ describe("FreeLanceDAO", function () {
       const description2 = "it is second project";
       const ProjectType = "blockchain"
       const deadline = Math.floor(Date.now() / 1000) + 7200;
-      const amount = ethers.parseEther("10")
+      const amount = ethers.parseEther("9")
+      const amount2 = 5
       const isPaidToContract = false;
       const isPaidToFreelancer = false
       const isCanceled = false
       const completed = false
+      const PRECISION = 1000000000000000000
 
 
   const ETHUSDPriceFeed = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
@@ -41,10 +45,9 @@ describe("FreeLanceDAO", function () {
   const VotingDelay = 7200; // 1 day
   const VotingPeriod = 50400; // 1 week
   const address1 ='0x0000000000000000000000000000000000000001'
-  let amountInUsd = 6000
+  let amountInUsd = 6000 
   let amountInUsd2 = 9000
   let amountInUsd3 = 7500
-
 
   before(async function () {
     [owner,client1, PROPOSERS1,creator, PROPOSERS2, PROPOSERS3, EXECUTORS1, EXECUTORS2, EXECUTORS3,freelancer1,freelancer2,freelancer3] = await ethers.getSigners();
@@ -216,9 +219,9 @@ describe("FreeLanceDAO", function () {
           ProjectType, 
           description, 
           deadline, 
-          amount, 
+          amount2, 
           false, 
-          { value: amount + (ethers.parseEther("1")) }
+          { value: (ethers.parseEther("5")) + (ethers.parseEther("0.1")) }
       );
       getTotalProjects = await freeLanceDAO.getTotalProjects()
       // console.log("getTotalProjects first create Project",getTotalProjects);
@@ -228,9 +231,9 @@ describe("FreeLanceDAO", function () {
         ProjectType, 
         description2, 
         deadline, 
-        amount, 
-        false, 
-        { value: amount + (ethers.parseEther("1")) }
+        amount2, //(ethers.parseEther("9")
+        false, //eth
+        { value: (ethers.parseEther("5")) + (ethers.parseEther("0.1"))  }
     );
      getTotalProjects = await freeLanceDAO.getTotalProjects()
       // console.log("getTotalProjects second create Project",getTotalProjects);
@@ -272,7 +275,7 @@ describe("FreeLanceDAO", function () {
     let PlatformFee = await freeLanceDAO.getPlatformFee()
     // console.log("before PlatformFee",PlatformFee);
     const timeLockSigner = await ethers.getSigner(timeLocksAddress);
-    await freeLanceDAO.connect(timeLockSigner).setPlatformFee(10)
+    await freeLanceDAO.connect(timeLockSigner).setPlatformFee(2)
 
      PlatformFee = await freeLanceDAO.getPlatformFee()
     // console.log("after PlatformFee",PlatformFee);
@@ -283,22 +286,29 @@ describe("FreeLanceDAO", function () {
  });
 
  it("should create a project with usd", async () =>{
-  console.log("into usd calculation");
+  // console.log("into usd calculation");
+ 
+//   const precision = ethers.parseUnits("1", 18); // This is equivalent to 1e18
+// const amountAfterMultilyingPrecesion = ethers.parseUnits("7000", 18); // Convert 7500 to wei
+
+const precision = ethers.getBigInt("1000000000000000000");
+const amountAfterMultilyingPrecesion = ethers.getBigInt("7000") * precision; // Use * instead of .mul()
 
   const [roundId, answer] = await mockV3Aggregator.latestRoundData();
-console.log("Mock Price Feed Answer from test:", answer.toString()); //300_000_000_000
-
-     const price = await freeLanceDAO.price(amountInUsd3);
-        console.log("Price from test:", price.toString());
-
+// console.log("Mock Price Feed Answer from test:", answer.toString()); //300_000_000_000
+              // console.log("amountAfterMultilyingPrecesion from test",amountAfterMultilyingPrecesion);
+              
+     const price = await freeLanceDAO.price(amountAfterMultilyingPrecesion);
+        // console.log("Price from test:", price.toString());
+  
   await freeLanceDAO.connect(creator).createProject(
     Project3Name, 
     ProjectType, 
     description, 
     deadline, 
-    amountInUsd, 
+    amount2, 
     false, 
-    { value: price + (ethers.parseEther("1"))}
+    { value: (ethers.parseEther("5")) + (ethers.parseEther("0.1"))}
 );
 let getTotalProjects = await freeLanceDAO.getTotalProjects()
   // console.log("getTotalProjects",getTotalProjects);
@@ -308,8 +318,8 @@ let PROJECT = await freeLanceDAO.idToProject(3);
  })
  it("Enrolling free lancer ", async function () {
         
-await freeLanceDAO.connect(freelancer1).enrollFreelancer(freelancer1Name,skills,bio);   
-await freeLanceDAO.connect(freelancer2).enrollFreelancer(freelancer2Name,skills,bio);      
+await freeLanceDAO.connect(freelancer1).enrollFreelancer(freelancer1Name,skills,bio,1,false,{value:ethers.parseEther("1")});   
+await freeLanceDAO.connect(freelancer2).enrollFreelancer(freelancer2Name,skills,bio,4500,true,{value:ethers.parseEther("1.5")});      
 const freelancers = await freeLanceDAO.getFreelancers();
 expect(freelancers.length).to.be.greaterThan(0)
 const freelancerCount = await freeLanceDAO.getFreelancerCount();  
@@ -320,6 +330,7 @@ expect(freelancerCount).to.equal(2);
      
  await freeLanceDAO.connect(freelancer1).applyForTheProject(1);
   await freeLanceDAO.connect(freelancer2).applyForTheProject(1);
+
 
   const project = await freeLanceDAO.idToProject(1);
 // console.log("Current Block Timestamp:", (await ethers.provider.getBlock("latest")).timestamp);
@@ -333,6 +344,29 @@ it("should revert apply For The Project", async function () {
  await expect( freeLanceDAO.connect(freelancer1).applyForTheProject(10)).to.be.revertedWith("Invalid project ID")
 });
   
+it("should selectingFreelancer",async function () {
+  let appliedFreelancers =  await freeLanceDAO.getFreelancersForProject(1)
+  expect(appliedFreelancers.length).to.be.greaterThan(0)
+  //  console.log("appliedFreelancers.length:", appliedFreelancers.length);
+   let returnedAddress
+    returnedAddress = await freeLanceDAO.connect(creator).selectingFreelancer(1);
+  //  console.log("returnedAddress from fucntion in test.:", returnedAddress.address);
+ 
+   const selectedFreelancer =  await freeLanceDAO.getSelectedFreelancer(1)
+  // console.log("selectedFreelancer in test:", selectedFreelancer);
+  const allfreelancerforAppliedProject =await freeLanceDAO.getFreelancersForProject(1);
+  // console.log("allfreelancerforAppliedProject in test:", allfreelancerforAppliedProject);
+  // console.log("freelancer1.:", freelancer1.address);
+  // console.log("freelancer2.:", freelancer2.address);
+  expect(selectedFreelancer).to.be.equal(freelancer1)
+
+
+
+
+
+
+
+})
    })
 
 });

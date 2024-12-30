@@ -3,8 +3,6 @@ pragma solidity ^0.8.9;
 import "hardhat/console.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
-//IMP:- // ETH 2.5 avthey 2 ki truncates avthundi
-
 contract FreeLanceDAO {
     address[] public freelancers;
     address[] public clients;
@@ -17,6 +15,7 @@ contract FreeLanceDAO {
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 public PRECISION = 1e18;
     uint256 public constant PERCENT = 100;
+    uint256 public constant MINIMUMUSD = 1000;
 
     //price feed kuda add chesi, freelancers enroll avvadaaniki enni dollars oo kuda chudaali
 
@@ -28,7 +27,7 @@ contract FreeLanceDAO {
     mapping(uint => bool) isProjectSelected;
     mapping(address => uint256) public freelancerRatings; // Store freelancer ratings
     mapping(uint => address) idToselectedFreelancer;
-    mapping(address => FreelancerProfile) freelancerProfiles;
+    mapping(address => FreelancerProfile) public freelancerProfiles;
     mapping(uint => bool) disputes;
     mapping (address => bool) isFreelancerEnrolled;
 
@@ -71,7 +70,27 @@ contract FreeLanceDAO {
         daoGovernance = _governanceContract;
     }
 
-    function enrollFreelancer( string memory _name, string memory _skills, string memory _bio) public {
+    function enrollFreelancer( string memory _name, string memory _skills, string memory _bio,uint256 _amount, bool isUsd) public payable{ 
+        if (isUsd) {
+               (,int256 price,,,) = priceFeed.latestRoundData();
+            //    console.log("in enrollFreelancer from the contract",uint256(price));  
+            //    console.log("in enrollFreelancer uint256(price) * ADDITIONAL_FEED_PRECISION from the contract",uint256(price) * ADDITIONAL_FEED_PRECISION);  
+            //    console.log("in enrollFreelancer _amount * PRECISION from the contract",_amount * PRECISION);  
+                               //4500   * 10000000000000000000               /  3 00000000000     * 10 000 000 000
+            uint256 needToPay=   _amount  * PRECISION * PRECISION  / ( uint256(price)* ADDITIONAL_FEED_PRECISION);  
+            // uint256 needToPay = (uint256(price) * ADDITIONAL_FEED_PRECISION * PRECISION) / (_amount * PRECISION);
+            // uint256 needToPay = (uint256(price) * ADDITIONAL_FEED_PRECISION) / _amount;
+            require(msg.value >=  needToPay, "to enroll need to pay for that ");
+            // console.log("in enrollFreelancer msg.value from the contract",msg.value); 
+            // console.log("in enrollFreelancer needToPay from the contract",needToPay); 
+                    } 
+                    else {
+            require(msg.value >=  PRECISION, "to enroll need to pay for that ");
+            // console.log("in enrollFreelancer msg.value from the contract",msg.value);  
+            // console.log("in enrollFreelancer PRECISION from the contract",PRECISION);  
+
+
+        }
         require(!isFreelancerEnrolled[msg.sender], "already enrolled");
         for (uint i = 0; i < freelancers.length; i++) {
             require(
@@ -80,7 +99,7 @@ contract FreeLanceDAO {
             );
         }
         
-        freelancerProfiles[msg.sender]= FreelancerProfile(_name,_skills,_bio,0);
+        freelancerProfiles[msg.sender]= FreelancerProfile(_name,_skills,_bio,1);
         freelancers.push(msg.sender);
         isFreelancerEnrolled[msg.sender] = true;
      }     
@@ -117,13 +136,17 @@ contract FreeLanceDAO {
         uint256 fee;
         uint256 totalAmount;
         if (isUsd) {
-            require(_amount > 1000, "Project amount cannot be empty");
+            require(_amount > MINIMUMUSD, "Project amount cannot be empty");
+              uint256 amountWithPrecesion = _amount * PRECISION;
+            uint256 ethEquivalent = price(amountWithPrecesion );
+            // console.log("ethEquivalent from the contract from usd",ethEquivalent);
 
-            uint256 ethEquivalent = price(_amount);
             require(ethEquivalent > 0, "price should be greater than 0");
 
             // Calculate fee in ETH
             fee = (ethEquivalent * platformFee) / PERCENT;
+            // console.log("fee from the contract from usd",fee);
+
 
             // Calculate total required ETH
             totalAmount = ethEquivalent + fee;
@@ -131,17 +154,34 @@ contract FreeLanceDAO {
                 msg.value >= ethEquivalent + fee,
                 "insufficient ETH for fee"
             );
+            // console.log("msg.value from the contract from usd",msg.value);
+
+            // console.log("totalAmount from the contract from usd",totalAmount);
+
         } else {
-            fee = (_amount * platformFee) / PERCENT;
+            // uint256 amount = _amount * PRECISION;
+            // console.log("amount from the contract ",amount);
+            // uint256 AMOUNTmulplATFORM = (amount * platformFee);
+            // console.log("AMOUNTmulplATFORM from the contract ",AMOUNTmulplATFORM);
+            // console.log("(amount * platformFee) from the contract ",(amount * platformFee));
+            // console.log("(PERCENT  from the contract ",PERCENT);
+
+                  
+
+            fee = ( _amount * PRECISION * platformFee) / (PERCENT );
+            // console.log("fee from the contract ",fee);
 
             // Calculate total required ETH (including the fee)
-            totalAmount = _amount + fee;
+            totalAmount = (_amount * PRECISION) + fee;        
+            // console.log("totalAmount from the contract ",totalAmount);
 
             // Ensure enough ETH is sent
             require(
-                msg.value >= totalAmount,
+                msg.value == totalAmount,
                 "Insufficient ETH for project and fee"
             );
+            // console.log("msg.value from the contract ",msg.value);
+
 
             // Update platform fees
             totalPlatformFees += fee;
@@ -169,13 +209,13 @@ contract FreeLanceDAO {
 
     function price(uint usdAmountInWei) public view returns (uint) {
         (, int256 answer, , , ) = priceFeed.latestRoundData();
-        console.log("price feed price from contract: %s", uint256(answer));
+        // console.log("price feed price from contract: %s", uint256(answer));
 
         // Cache the scaled price to avoid repeating the same calculation
         uint256 scaledAnswer = uint256(answer) * ADDITIONAL_FEED_PRECISION;
-        console.log("scaledAnswer from contract: %s", scaledAnswer);
+        // console.log("scaledAnswer from contract: %s", scaledAnswer);
         uint256 ethEquivalent = (usdAmountInWei * PRECISION) / scaledAnswer;
-        console.log("ethEquivalent from contract: %s", ethEquivalent);
+        // console.log("ethEquivalent from contract: %s", ethEquivalent);
 
         return ethEquivalent;
     }
@@ -204,7 +244,7 @@ contract FreeLanceDAO {
 
         return true;
     }
-    function selectingFreelancer(uint256 projectId) public {
+    function selectingFreelancer(uint256 projectId) public returns(address) {
         Project storage project = idToProject[projectId];
         require(
             project.creatorOrOwner == msg.sender,
@@ -226,17 +266,29 @@ contract FreeLanceDAO {
             i++
         ) {
             address freelancer = freelancersApplaiedforProject[projectId][i];
-            uint256 rating = freelancerRatings[freelancer];
-            if (rating > highestRating) {
-                highestRating = rating;
+            // console.log("in loop freelancer  from the contract",freelancer);
+
+            FreelancerProfile memory freelancerProfile = freelancerProfiles[freelancer];
+            // console.log("in loop freelancerProfile.rating  from the contract",freelancerProfile.rating);
+            // console.log("in loop highestRating  from the contract",highestRating);
+
+            if (freelancerProfile.rating > highestRating) {  
+
+                highestRating = freelancerProfile.rating;
+
                 selectedFreelancer = freelancer;
+                // console.log("in loop selectedFreelancer  from the contract",selectedFreelancer);
+
             }
         }
+        // console.log("selectedFreelancer from the contract",selectedFreelancer);
 
         idToselectedFreelancer[projectId] = selectedFreelancer;
         //last
         isProjectSelected[projectId] = true;
         isProjectPickedByAnyFreelancer[projectId] = true;
+
+        return selectedFreelancer; 
     }
 
     function cancelTheProject(uint256 projectId) public returns (bool) {
@@ -420,16 +472,15 @@ contract FreeLanceDAO {
         require(success, "Withdrawal failed");
     }
 
-    function toGiveAfundInUsd(uint256 amount, bool IsUsd) public payable {
+    function toGiveAfundInUsd(uint256 _amount, bool IsUsd) public payable {
         if (IsUsd) {
             (, int256 price, , , ) = priceFeed.latestRoundData();
-
-            uint256 amountToPay = (amount * PRECISION) /
-                (uint256(price) * ADDITIONAL_FEED_PRECISION);
+                                    
+            uint256 amountToPay = (_amount * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
 
             require(msg.value >= amountToPay, "need to pay this amount");
         } else {
-            toGiveAfundInEther(amount);
+            toGiveAfundInEther(_amount); 
         }
     }
 
@@ -437,8 +488,12 @@ contract FreeLanceDAO {
         require(msg.value >= amount, "need to pay this amount");
     }
 
-    receive() external payable {}
-
+    receive() external payable {
+        uint256 amount = msg.value; 
+        bool isUsd = false; 
+            toGiveAfundInUsd(amount, isUsd);
+    }
+    
     // Getter to retrieve the total number of projects
     function getTotalProjects() public view returns (uint256) {
         return totalProjects;
