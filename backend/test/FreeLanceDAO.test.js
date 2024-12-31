@@ -361,11 +361,6 @@ it("should selectingFreelancer",async function () {
   expect(selectedFreelancer).to.be.equal(freelancer1)
 
 
-
-
-
-
-
 })
    })
 
