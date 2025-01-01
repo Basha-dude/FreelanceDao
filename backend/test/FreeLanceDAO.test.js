@@ -11,11 +11,9 @@ describe("FreeLanceDAO", function () {
       timeLock,creator,ETHUSDPrice,mockV3Aggregator
       ,freelancer2,freelancer3;
 
-
       const freelancer1Name = "freelancer1";
       const freelancer2Name = "freelancer2";
       const freelancer3Name = "freelancer2";
-
 
         let skills = "react.js,solidity";
         let bio = "'m a passionate Web3 freelancer.";
@@ -27,6 +25,7 @@ describe("FreeLanceDAO", function () {
       const ProjectName = "firstProject"; 
       const Project2Name = "secondProject";
       const Project3Name = "thirdProject";
+      const Project4Name = "fourthProject";
       const creatorOrOwner = creator;
       const description = "it is first project";
       const description2 = "it is second project";
@@ -324,6 +323,9 @@ let PROJECT = await freeLanceDAO.idToProject(3);
 await freeLanceDAO.connect(freelancer1).enrollFreelancer(freelancer1Name,skills,bio,1,false,{value:ethers.parseEther("1")});   
 await freeLanceDAO.connect(freelancer2).enrollFreelancer(freelancer2Name,skills,bio,4500,true,{value:ethers.parseEther("1.5")});   
 await freeLanceDAO.connect(freelancer3).enrollFreelancer(freelancer3Name,skills,bio,4500,false,{value:ethers.parseEther("1")});   
+const profile = await freeLanceDAO.freelancerProfiles(freelancer1);
+console.log("Rating after enrollment:", profile.rating.toString());
+
 
 
 const freelancers = await freeLanceDAO.getFreelancers();
@@ -403,9 +405,100 @@ it("should revert apply For The Project", async function () {
 
  })
 
- it("resolve the dispute",()=> {
+ it("resolve the dispute",async ()=> {
+      await freeLanceDAO.connect(freelancer3).resolveDispute(2)
+      const treuOrFalse =await freeLanceDAO.hasDispute(2)
+        expect(treuOrFalse).to.equal(false);
 
  })
+ it("submitTheProject",async () => {
+  await freeLanceDAO.connect(freelancer3).submitTheProject(2)
+  const PROJECT = await freeLanceDAO.getProjectById(2)
+    expect(PROJECT.completed).to.equal(true);
+ })
+
+ it("validateTheProject",async() => {
+         const balanceBefore = await ethers.provider.getBalance(freelancer3.address)
+        //  console.log("balanceBefore",balanceBefore);
+
+  await freeLanceDAO.connect(creator).validateTheProject(2)
+  const balanceafter = await ethers.provider.getBalance(freelancer3.address)
+        //  console.log("balanceafter",balanceafter);
+  const PROJECT = await freeLanceDAO.getProjectById(2)
+    expect(PROJECT.isPaidToFreelancer).to.equal(true);
+ })
+ 
+ it("rateFreelancer",async() => {
+    await freeLanceDAO.connect(creator).rateFreelancer(2,4)
+    const selectedFreelancer = await freeLanceDAO.getSelectedFreelancer(2)
+    const ratingOfFreelancer = await freeLanceDAO.getFreelancerRating(selectedFreelancer)
+    // console.log("ratingOfFreelancer",ratingOfFreelancer);
+    expect(ratingOfFreelancer).to.be.equal(4)
+ })
+
+ it("extendDeadline",async () => {
+  let PROJECT = await freeLanceDAO.getProjectById(1)
+    // console.log("project dealine",PROJECT.deadline)
+    const deadline = Math.floor(Date.now() / 1000) + 7200 + 7200;
+   await freeLanceDAO.connect(creator).extendDeadline(1,deadline)
+     PROJECT = await freeLanceDAO.getProjectById(1)
+  //  console.log("project dealine",PROJECT.deadline)
+ })
+
+ it("updatefreelancerProfile", async() => {
+  const BeforeupdatedRating = await freeLanceDAO.getFreelancerRating(freelancer1.address)
+  // console.log("BeforeupdatedRating",BeforeupdatedRating);
+  
+  const timeLocksAddress = timeLock.target
+  await hre.network.provider.request({
+    method:"hardhat_impersonateAccount",
+    params:[timeLocksAddress],
+  }) 
+
+   const timeLockSigner = await ethers.getSigner(timeLocksAddress)
+   await freeLanceDAO.connect(timeLockSigner).updatefreelancerProfile(freelancer1.address,"alice","updated bio","good at coding",5)
+
+   await hre.network.provider.request({
+    method:"hardhat_impersonateAccount",
+    params:[timeLocksAddress],
    })
+
+   const AfterupdatedRating = await freeLanceDAO.getFreelancerRating(freelancer1.address)
+  //  console.log("AfterupdatedRating",AfterupdatedRating);
+   
+ })
+
+ it("should withdrawTheProject",async () => {
+  const balanceBefore = await ethers.provider.getBalance(creator.address)
+  console.log("balanceBefore",balanceBefore);
+  
+  await freeLanceDAO.connect(creator).createProject(
+    Project4Name, 
+    ProjectType, 
+    description2, 
+    deadline, 
+    amount2, //(ethers.parseEther("9")
+    false, //eth
+    { value: (ethers.parseEther("200")) }
+);
+
+await ethers.provider.send("evm_increaseTime",[7300])
+  await freeLanceDAO.connect(creator).withdrawTheProject(4)
+  const balanceAfter = await ethers.provider.getBalance(creator.address)
+  console.log("balanceAfter",balanceAfter);
+  let PROJECT = await freeLanceDAO.getProjectById(3)
+  expect(PROJECT.isCanceled).to.be.equal(true)
+
+/* 
+ikkada oka bug undi enti anntey konthamandi amount ni usd and eth lo pampinchaaru manam withdraw the project 
+or cancel the project chestappudu adhi usd or chudakunda send chesthunnamu so values change avthunnnai
+ so price calculate  chesi code cheyyali
+ */
+
+
+ })
+
+   })
+
 
 });

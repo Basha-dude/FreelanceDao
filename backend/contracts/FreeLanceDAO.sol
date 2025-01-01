@@ -16,6 +16,7 @@ contract FreeLanceDAO {
     uint256 public PRECISION = 1e18;
     uint256 public constant PERCENT = 100;
     uint256 public constant MINIMUMUSD = 1000;
+    uint256 public constant INITIALRATING = 1;
 
     //price feed kuda add chesi, freelancers enroll avvadaaniki enni dollars oo kuda chudaali
 
@@ -43,6 +44,7 @@ contract FreeLanceDAO {
         bool isPaidToFreelancer;
         bool isCanceled;
         bool completed;
+        bool isUsd;
     }
 
     struct FreelancerProfile {
@@ -99,7 +101,8 @@ contract FreeLanceDAO {
             );
         }
         
-        freelancerProfiles[msg.sender]= FreelancerProfile(_name,_skills,_bio,1);
+        freelancerProfiles[msg.sender]= FreelancerProfile(_name,_skills,_bio,INITIALRATING);
+        freelancerRatings[msg.sender] = INITIALRATING;
         freelancers.push(msg.sender);
         isFreelancerEnrolled[msg.sender] = true;
      }     
@@ -124,8 +127,8 @@ contract FreeLanceDAO {
         string memory _description,
         uint256 _deadline,
         uint256 _amount,
-        bool isUsd
-    ) public payable {
+        bool _isUsd
+    ) public payable returns(uint256) {
         require(bytes(_name).length != 0, "Project name cannot be empty");
         require(bytes(_projectType).length != 0, "Project tye cannot be empty");
         require(
@@ -135,7 +138,7 @@ contract FreeLanceDAO {
         require(_deadline != 0, "Project _deadline cannot be empty");
         uint256 fee;
         uint256 totalAmount;
-        if (isUsd) {
+        if (_isUsd) {
             require(_amount > MINIMUMUSD, "Project amount cannot be empty");
               uint256 amountWithPrecesion = _amount * PRECISION;
             uint256 ethEquivalent = price(amountWithPrecesion );
@@ -177,7 +180,7 @@ contract FreeLanceDAO {
 
             // Ensure enough ETH is sent
             require(
-                msg.value == totalAmount,
+                msg.value >= totalAmount,
                 "Insufficient ETH for project and fee"
             );
             // console.log("msg.value from the contract ",msg.value);
@@ -200,11 +203,13 @@ contract FreeLanceDAO {
             isPaidToContract: true,
             isPaidToFreelancer: false,
             isCanceled: false,
-            completed: false
+            completed: false,
+            isUsd: _isUsd
         });
         projects.push(project);
         idToProject[totalProjects] = project;
         isProjectPickedByAnyFreelancer[totalProjects] = false;
+        return totalProjects;
     }
 
     function price(uint usdAmountInWei) public view returns (uint) {
@@ -316,9 +321,16 @@ contract FreeLanceDAO {
             "cancelTheProject project is picked by freelancer"
         );
 
+        if (project.isUsd) {
+              
+        } else {
+            
+        }
+         uint256 amountToSEND = project.amount * PRECISION;
+        
         project.isCanceled = true;
         (bool success, ) = payable(project.creatorOrOwner).call{
-            value: project.amount
+            value: amountToSEND
         }("");
         require(success, "Refund failed");
 
@@ -381,14 +393,16 @@ contract FreeLanceDAO {
         );
         require(project.completed, "project not completed");
         require(
-            projectId > 0 && projectId < totalProjects,
+            projectId > 0 && projectId <= totalProjects,
             "Invalid project ID"
         );
-        require(rating >= 1 && rating <= 5, "Rating must be between 1 and 5");
+        require(rating >= INITIALRATING && rating <= 5, "Rating must be between 1 and 5");
 
         address freelancer = idToselectedFreelancer[projectId];
 
-        freelancerRatings[freelancer] += rating;
+        freelancerRatings[freelancer] = rating;
+         FreelancerProfile  storage freelancerProfile = freelancerProfiles[freelancer];
+                  freelancerProfile.rating = rating;
     }
 
     function extendDeadline(uint256 projectId, uint256 newDeadline) public {
@@ -406,19 +420,21 @@ contract FreeLanceDAO {
     }
 
     function updatefreelancerProfile(
+        address _freelancer,
         string memory name,
         string memory bio,
         string memory skills,
         uint256 rating
-    ) public returns (bool) {
-       
-       
-        freelancerProfiles[msg.sender] = FreelancerProfile({
+    ) public onlyGovernance returns (bool)  {
+       require(isFreelancerEnrolled[_freelancer], "to update freelancer should enroll");
+        freelancerProfiles[_freelancer] = FreelancerProfile({
             name: name,
             bio: bio,
             skills: skills,
             rating:rating
         });
+
+        freelancerRatings[_freelancer] = rating;   
 
         return true;
     }
@@ -437,22 +453,25 @@ contract FreeLanceDAO {
             "Freelancer has already been paid"
         );
         require(!disputes[projectId], "have disputes");
-        // Mark payment as completed
+        // Mark payment as completed 
         project.isPaidToFreelancer = true;
         address freelancer = idToselectedFreelancer[projectId];
-        (bool success, ) = payable(freelancer).call{value: project.amount}("");
+        uint256 amountToSEND = project.amount * PRECISION;
+
+        (bool success, ) = payable(freelancer).call{value: amountToSEND}("");
+        // console.log("project.amount from the contract",project.amount);   
         require(success, "Payment to freelancer failed");
     }
 
 
-    function withdraw(uint256 projectId) public {
+    function withdrawTheProject(uint256 projectId) public {
         Project storage project = idToProject[projectId];
         require(block.timestamp > project.deadline, "Deadline has not passed");
         require(
             project.creatorOrOwner == msg.sender,
             "only project owner can call this"
         );
-        require(!project.completed, "project is not completed");
+        require(!project.completed, "project is  completed");
         require(!project.isCanceled, "Project is already canceled");
         require(
             !isProjectPickedByAnyFreelancer[projectId],
@@ -460,11 +479,12 @@ contract FreeLanceDAO {
         );
 
         project.isCanceled = true;
-
+        uint256 amountToSEND = project.amount * PRECISION;
         (bool success, ) = payable(project.creatorOrOwner).call{
-            value: project.amount
+            value: amountToSEND
         }("");
         require(success, "payment cancelled");
+        console.log("hitted the payable ");
     }
 
     function withdraw() public {
@@ -631,7 +651,7 @@ contract FreeLanceDAO {
         return freelancers.length;
     }
 
-    function isFreelancerEnrolledOrNot(address _user) public returns(bool) {
-       return isFreelancerEnrolled[_user];
+    function isFreelancerEnrolledOrNot(address _user) public view returns(bool) {
+       return isFreelancerEnrolled[_user]; 
     }
 }
