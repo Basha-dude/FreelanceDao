@@ -14,6 +14,8 @@ describe("FreeLanceDAO", function () {
 
       const freelancer1Name = "freelancer1";
       const freelancer2Name = "freelancer2";
+      const freelancer3Name = "freelancer2";
+
 
         let skills = "react.js,solidity";
         let bio = "'m a passionate Web3 freelancer.";
@@ -213,7 +215,7 @@ describe("FreeLanceDAO", function () {
     it("should give correct name", async function () {
       let getTotalProjects = await freeLanceDAO.getTotalProjects()
       // console.log("getTotalProjects",getTotalProjects);
-      
+      //1
       await freeLanceDAO.connect(creator).createProject(
           ProjectName, 
           ProjectType, 
@@ -225,7 +227,8 @@ describe("FreeLanceDAO", function () {
       );
       getTotalProjects = await freeLanceDAO.getTotalProjects()
       // console.log("getTotalProjects first create Project",getTotalProjects);
-
+     
+      //2
       await freeLanceDAO.connect(creator).createProject(
         Project2Name, 
         ProjectType, 
@@ -300,7 +303,7 @@ const amountAfterMultilyingPrecesion = ethers.getBigInt("7000") * precision; // 
               
      const price = await freeLanceDAO.price(amountAfterMultilyingPrecesion);
         // console.log("Price from test:", price.toString());
-  
+  //3
   await freeLanceDAO.connect(creator).createProject(
     Project3Name, 
     ProjectType, 
@@ -319,17 +322,21 @@ let PROJECT = await freeLanceDAO.idToProject(3);
  it("Enrolling free lancer ", async function () {
         
 await freeLanceDAO.connect(freelancer1).enrollFreelancer(freelancer1Name,skills,bio,1,false,{value:ethers.parseEther("1")});   
-await freeLanceDAO.connect(freelancer2).enrollFreelancer(freelancer2Name,skills,bio,4500,true,{value:ethers.parseEther("1.5")});      
+await freeLanceDAO.connect(freelancer2).enrollFreelancer(freelancer2Name,skills,bio,4500,true,{value:ethers.parseEther("1.5")});   
+await freeLanceDAO.connect(freelancer3).enrollFreelancer(freelancer3Name,skills,bio,4500,false,{value:ethers.parseEther("1")});   
+
+
 const freelancers = await freeLanceDAO.getFreelancers();
 expect(freelancers.length).to.be.greaterThan(0)
 const freelancerCount = await freeLanceDAO.getFreelancerCount();  
-expect(freelancerCount).to.equal(2);
+expect(freelancerCount).to.equal(3);
 });
 
  it("should apply For The Project ", async function () {
      
  await freeLanceDAO.connect(freelancer1).applyForTheProject(1);
   await freeLanceDAO.connect(freelancer2).applyForTheProject(1);
+
 
 
   const project = await freeLanceDAO.idToProject(1);
@@ -340,9 +347,7 @@ expect(freelancerCount).to.equal(2);
  expect(appliedFreelancers.length).to.be.greaterThan(0)
 });
 
-it("should revert apply For The Project", async function () {    
- await expect( freeLanceDAO.connect(freelancer1).applyForTheProject(10)).to.be.revertedWith("Invalid project ID")
-});
+
   
 it("should selectingFreelancer",async function () {
   let appliedFreelancers =  await freeLanceDAO.getFreelancersForProject(1)
@@ -360,8 +365,47 @@ it("should selectingFreelancer",async function () {
   // console.log("freelancer2.:", freelancer2.address);
   expect(selectedFreelancer).to.be.equal(freelancer1)
 
-
 })
+it("cancel the project", async () => {
+
+  await freeLanceDAO.connect(freelancer3).applyForTheProject(3);
+  await freeLanceDAO.connect(freelancer2).applyForTheProject(3);
+  // console.log("freelancer3",freelancer3.address);
+  // console.log("freelancer2",freelancer2.address);
+
+  await freeLanceDAO.connect(creator).selectingFreelancer(3);
+
+  let appliedFreelancers =  await freeLanceDAO.getFreelancersForProject(3)
+  //  console.log("appliedFreelancers.length:", appliedFreelancers.length);
+
+ const selectedFreelancer =  await freeLanceDAO.getSelectedFreelancer(3)
+// console.log("selectedFreelancer in test:", selectedFreelancer);
+
+
+  const cancelledOrNot = await freeLanceDAO.connect(creator).cancelTheProject(3);
+  let PROJECT = await freeLanceDAO.idToProject(3);
+  expect(PROJECT.isCanceled).to.equal(true);
+
+});
+it("should revert apply For The Project", async function () {    
+  await expect( freeLanceDAO.connect(freelancer1).applyForTheProject(10)).to.be.revertedWith("applied Invalid project ID")
+ });
+
+ it("raise disputes",async() => {
+  await freeLanceDAO.connect(freelancer3).applyForTheProject(2);
+  await freeLanceDAO.connect(freelancer2).applyForTheProject(2);
+  
+  await freeLanceDAO.connect(creator).selectingFreelancer(2);
+  const selectedFreelancer =  await freeLanceDAO.getSelectedFreelancer(3)
+  await freeLanceDAO.connect(creator).raiseDisputes(2)
+  const treuOrFalse =await freeLanceDAO.hasDispute(2)
+  expect(treuOrFalse).to.equal(true);
+
+ })
+
+ it("resolve the dispute",()=> {
+
+ })
    })
 
 });

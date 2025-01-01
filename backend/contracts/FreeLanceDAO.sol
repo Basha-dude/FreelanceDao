@@ -7,7 +7,7 @@ contract FreeLanceDAO {
     address[] public freelancers;
     address[] public clients;
     address public daoGovernance;
-    uint256 totalProjects;
+    uint256 public totalProjects;
     Project[] public projects;
     uint256 public totalPlatformFees;
     AggregatorV3Interface public priceFeed;
@@ -222,15 +222,15 @@ contract FreeLanceDAO {
 
       function applyForTheProject(uint256 projectId) public returns (bool) {
         Project memory project = idToProject[projectId];
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "applied Invalid project ID");
         require(
-            projectId > 0 && projectId < totalProjects,
+            projectId > 0 && projectId <= totalProjects,
             "Invalid project ID"
         );
         require(block.timestamp < project.deadline, "Deadline has passed");
         require(
             !isProjectPickedByAnyFreelancer[projectId],
-            "project is picked by freelancer"
+            " applyForTheProject project is picked by freelancer"
         );
         require(!project.completed, "project is completed");
         require(!project.isPaidToFreelancer, "project is paid to freelancer");
@@ -246,6 +246,10 @@ contract FreeLanceDAO {
     }
     function selectingFreelancer(uint256 projectId) public returns(address) {
         Project storage project = idToProject[projectId];
+        require(
+            projectId > 0 && projectId <= totalProjects,
+            " selectingFreelancer Invalid project ID"
+        );
         require(
             project.creatorOrOwner == msg.sender,
             "only project owner can call this"
@@ -298,18 +302,18 @@ contract FreeLanceDAO {
             "only project owner can call this"
         );
         require(
-            projectId > 0 && projectId < totalProjects,
-            "Invalid project ID"
+            projectId > 0 && projectId <= totalProjects,
+            " cancel Invalid project ID"
         );
         require(block.timestamp < project.deadline, "Deadline has passed");
         require(
-            !isProjectSelected[projectId],
+            isProjectSelected[projectId],
             "project is selected so not able to cancel project"
         );
         require(!project.isCanceled, "project is already cancelled");
         require(
-            !isProjectPickedByAnyFreelancer[projectId],
-            "project is picked by freelancer"
+            isProjectPickedByAnyFreelancer[projectId],
+            "cancelTheProject project is picked by freelancer"
         );
 
         project.isCanceled = true;
@@ -319,6 +323,31 @@ contract FreeLanceDAO {
         require(success, "Refund failed");
 
         return true;
+    }
+
+    function raiseDisputes(uint256 projectId) public {
+        Project memory project = idToProject[projectId];
+        require(
+            project.creatorOrOwner == msg.sender,
+            "only project owner can call this"
+        );
+        require(!project.completed, "project is not completed");
+        require(
+            !disputes[projectId],
+            "Dispute already raised for this project"
+        );
+        require(!project.isCanceled, "Cannot dispute a canceled project");
+        disputes[projectId] = true;
+    }
+
+    function resolveDispute(uint256 projectId) public {
+        require(
+            idToselectedFreelancer[projectId] == msg.sender,
+            "you are not the selected freelancer "
+        );
+        require(disputes[projectId], "No dispute raised for this project");
+
+        disputes[projectId] = false;
     }
 
     function submitTheProject(uint256 projectId) public {
@@ -334,28 +363,7 @@ contract FreeLanceDAO {
         project.completed = true;
     }
 
-    function withdraw(uint256 projectId) public {
-        Project storage project = idToProject[projectId];
-        require(block.timestamp > project.deadline, "Deadline has not passed");
-        require(
-            project.creatorOrOwner == msg.sender,
-            "only project owner can call this"
-        );
-        require(!project.completed, "project is not completed");
-        require(!project.isCanceled, "Project is already canceled");
-        require(
-            !isProjectPickedByAnyFreelancer[projectId],
-            "Freelancer has already picked this project"
-        );
-
-        project.isCanceled = true;
-
-        (bool success, ) = payable(project.creatorOrOwner).call{
-            value: project.amount
-        }("");
-        require(success, "payment cancelled");
-    }
-
+   
     function setPlatformFee(
         uint256 newFee
     )
@@ -415,30 +423,7 @@ contract FreeLanceDAO {
         return true;
     }
 
-    function raiseDisputes(uint256 projectId) public {
-        Project memory project = idToProject[projectId];
-        require(
-            project.creatorOrOwner == msg.sender,
-            "only project owner can call this"
-        );
-        require(project.completed, "project is not completed");
-        require(
-            !disputes[projectId],
-            "Dispute already raised for this project"
-        );
-        require(!project.isCanceled, "Cannot dispute a canceled project");
-        disputes[projectId] = true;
-    }
-
-    function resolveDispute(uint256 projectId) public {
-        require(
-            idToselectedFreelancer[projectId] == msg.sender,
-            "you are not the selected freelancer "
-        );
-        require(disputes[projectId], "No dispute raised for this project");
-
-        disputes[projectId] = false;
-    }
+  
 
     function validateTheProject(uint256 projectId) public {
         Project storage project = idToProject[projectId];
@@ -459,6 +444,29 @@ contract FreeLanceDAO {
         require(success, "Payment to freelancer failed");
     }
 
+
+    function withdraw(uint256 projectId) public {
+        Project storage project = idToProject[projectId];
+        require(block.timestamp > project.deadline, "Deadline has not passed");
+        require(
+            project.creatorOrOwner == msg.sender,
+            "only project owner can call this"
+        );
+        require(!project.completed, "project is not completed");
+        require(!project.isCanceled, "Project is already canceled");
+        require(
+            !isProjectPickedByAnyFreelancer[projectId],
+            "Freelancer has already picked this project"
+        );
+
+        project.isCanceled = true;
+
+        (bool success, ) = payable(project.creatorOrOwner).call{
+            value: project.amount
+        }("");
+        require(success, "payment cancelled");
+    }
+
     function withdraw() public {
         uint256 totalContractBalance = address(this).balance;
         require(
@@ -477,7 +485,6 @@ contract FreeLanceDAO {
             (, int256 price, , , ) = priceFeed.latestRoundData();
                                     
             uint256 amountToPay = (_amount * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
-
             require(msg.value >= amountToPay, "need to pay this amount");
         } else {
             toGiveAfundInEther(_amount); 
@@ -485,7 +492,7 @@ contract FreeLanceDAO {
     }
 
     function toGiveAfundInEther(uint256 amount) public payable {
-        require(msg.value >= amount, "need to pay this amount");
+        require(msg.value >= amount * PRECISION, "need to pay this amount");
     }
 
     receive() external payable {
@@ -542,7 +549,7 @@ contract FreeLanceDAO {
     function getFreelancersForProject(
         uint256 projectId
     ) public view returns (address[] memory) {
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "Invalid project ID");
         return freelancersApplaiedforProject[projectId];
     }
 
@@ -567,7 +574,7 @@ contract FreeLanceDAO {
     function getSelectedFreelancer(
         uint256 projectId
     ) public view returns (address) {
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "Invalid project ID");
         return idToselectedFreelancer[projectId];
     }
 
