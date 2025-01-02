@@ -33,6 +33,7 @@ describe("FreeLanceDAO", function () {
       const deadline = Math.floor(Date.now() / 1000) + 7200;
       const amount = ethers.parseEther("9")
       const amount2 = 5
+      const amount3 = 3000
       const isPaidToContract = false;
       const isPaidToFreelancer = false
       const isCanceled = false
@@ -469,32 +470,57 @@ it("should revert apply For The Project", async function () {
  })
 
  it("should withdrawTheProject",async () => {
+
   const balanceBefore = await ethers.provider.getBalance(creator.address)
   console.log("balanceBefore",balanceBefore);
+  console.log("from the test creator.address",creator.address);
+  
   
   await freeLanceDAO.connect(creator).createProject(
     Project4Name, 
     ProjectType, 
     description2, 
     deadline, 
-    amount2, //(ethers.parseEther("9")
+    amount2, //
     false, //eth
-    { value: (ethers.parseEther("200")) }
+    { value: (ethers.parseEther("5.1")) }
 );
 
 await ethers.provider.send("evm_increaseTime",[7300])
-  await freeLanceDAO.connect(creator).withdrawTheProject(4)
-  const balanceAfter = await ethers.provider.getBalance(creator.address)
+
+const tx = await freeLanceDAO.connect(creator).withdrawTheProject(4,{ gasLimit: 10000000 });
+const receipt = await tx.wait();
+console.log("Transaction status:", receipt.status);
+
+
+// Calculate gas used
+const gasUsed = receipt.gasUsed * receipt.gasPrice;
+
+const balanceAfter = await ethers.provider.getBalance(creator.address);
+const actualChange = balanceAfter - balanceBefore + gasUsed;
+    
+console.log("Balance Change (including gas):", actualChange);
+console.log("Gas fees paid:", gasUsed);
   console.log("balanceAfter",balanceAfter);
-  let PROJECT = await freeLanceDAO.getProjectById(3)
+
+//   expect(actualChange).to.be.closeTo(
+//     ethers.parseEther("3"),
+//     ethers.parseEther("0.01") // Allow small deviation
+// );
+
+const balanceChange = balanceAfter - balanceBefore;
+const totalBalanceChange = balanceChange + gasUsed ;
+
+let PROJECT = await freeLanceDAO.getProjectById(3)
   expect(PROJECT.isCanceled).to.be.equal(true)
 
-/* 
-ikkada oka bug undi enti anntey konthamandi amount ni usd and eth lo pampinchaaru manam withdraw the project 
-or cancel the project chestappudu adhi usd or chudakunda send chesthunnamu so values change avthunnnai
- so price calculate  chesi code cheyyali
- */
+console.log("Total Balance Change (including gas):", totalBalanceChange);
+console.log("Gas fees paid:", gasUsed);
+console.log("project.creatorOrOwner:", PROJECT.creatorOrOwner);
+console.log("creator.address:", creator.address);
 
+
+  
 
  })
 
@@ -502,3 +528,6 @@ or cancel the project chestappudu adhi usd or chudakunda send chesthunnamu so va
 
 
 });
+
+
+

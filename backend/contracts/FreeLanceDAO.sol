@@ -139,7 +139,7 @@ contract FreeLanceDAO {
         uint256 fee;
         uint256 totalAmount;
         if (_isUsd) {
-            require(_amount > MINIMUMUSD, "Project amount cannot be empty");
+            require(_amount >= MINIMUMUSD, "Project amount cannot be empty");
               uint256 amountWithPrecesion = _amount * PRECISION;
             uint256 ethEquivalent = price(amountWithPrecesion );
             // console.log("ethEquivalent from the contract from usd",ethEquivalent);
@@ -322,17 +322,27 @@ contract FreeLanceDAO {
         );
 
         if (project.isUsd) {
+            uint256 pricefromFeed = priceOfEthInUsd();
+
+            //7500
+             uint256 needToPay = project.amount * PRECISION  * PRECISION / pricefromFeed * ADDITIONAL_FEED_PRECISION ;
+             (bool success, ) = payable(project.creatorOrOwner).call{
+                value: needToPay
+            }("");
+            require(success, " cancelTheProject usd Refund failed");
+
               
         } else {
+            uint256 amountToSEND = project.amount * PRECISION;
+        
+            project.isCanceled = true;
+            (bool success, ) = payable(project.creatorOrOwner).call{
+                value: amountToSEND
+            }("");
+            require(success, "cancelTheProject eth Refund failed");
             
         }
-         uint256 amountToSEND = project.amount * PRECISION;
         
-        project.isCanceled = true;
-        (bool success, ) = payable(project.creatorOrOwner).call{
-            value: amountToSEND
-        }("");
-        require(success, "Refund failed");
 
         return true;
     }
@@ -479,15 +489,47 @@ contract FreeLanceDAO {
         );
 
         project.isCanceled = true;
-        uint256 amountToSEND = project.amount * PRECISION;
-        (bool success, ) = payable(project.creatorOrOwner).call{
-            value: amountToSEND
-        }("");
-        require(success, "payment cancelled");
-        console.log("hitted the payable ");
-    }
+        console.log("from the contract msg.sender:", msg.sender);
+        console.log(" from the contract msg.sender project.creatorOrOwner:", project.creatorOrOwner);
 
-    function withdraw() public {
+        if (project.isUsd) {
+            uint256 balanceBefore = address(this).balance;
+            console.log("balanceBefore from the contract",balanceBefore);
+            uint256 pricefromFeed = priceOfEthInUsd();
+              console.log("pricefromFeed from the contract ",pricefromFeed);
+              console.log("project.amount * PRECISION  * PRECISION",project.amount * PRECISION  * PRECISION);
+              console.log("pricefromFeed * ADDITIONAL_FEED_PRECISION",pricefromFeed * ADDITIONAL_FEED_PRECISION);
+              uint256 numerator = project.amount * PRECISION  * PRECISION ;
+              uint256 denominator = pricefromFeed * ADDITIONAL_FEED_PRECISION;
+             uint256 needToPay = numerator / denominator;
+             console.log(" in contract Amount to pay in ETH:", needToPay);
+            uint256 balanceAfter = address(this).balance;
+
+            //   (bool sucess,) = payable(project.creatorOrOwner).call{value: needToPay}("");
+            //   require(sucess);
+            //   console.log("sucess",sucess);
+
+            (bool success,) = msg.sender.call{value: needToPay}("");
+            require(success);
+
+
+              uint256 balanceafter = address(this).balance;
+              console.log("balanceafter from the contract",balanceafter);
+              
+              
+        } else {
+            uint256 amountToSEND = project.amount * PRECISION;
+        
+            project.isCanceled = true;
+            (bool success, ) = msg.sender.call{
+                value: amountToSEND
+            }("");
+            require(success, " withdrawTheProject eth Refund failed");
+            
+    }
+    }         
+
+    function withdraw() public {  
         uint256 totalContractBalance = address(this).balance;
         require(
             msg.sender == daoGovernance,
@@ -509,6 +551,11 @@ contract FreeLanceDAO {
         } else {
             toGiveAfundInEther(_amount); 
         }
+    }
+
+    function priceOfEthInUsd() public view returns (uint256) {
+        (, int256 price, , , ) = priceFeed.latestRoundData();
+        return uint256(price);
     }
 
     function toGiveAfundInEther(uint256 amount) public payable {
