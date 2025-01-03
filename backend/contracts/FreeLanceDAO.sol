@@ -3,6 +3,13 @@ pragma solidity ^0.8.9;
 import "hardhat/console.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
+
+/* 
+
+HAS SAMO ISSUE  WHEN THE CREATOR CALLS THE WITHDRAW THE PROJECT FUNCTION,
+ HE IS GETTING MONEY BACK
+*/
+
 contract FreeLanceDAO {
     address[] public freelancers;
     address[] public clients;
@@ -323,6 +330,7 @@ contract FreeLanceDAO {
 
         if (project.isUsd) {
             uint256 pricefromFeed = priceOfEthInUsd();
+            console.log(" in cancel came to the usd");
 
             //7500
              uint256 needToPay = project.amount * PRECISION  * PRECISION / pricefromFeed * ADDITIONAL_FEED_PRECISION ;
@@ -334,12 +342,15 @@ contract FreeLanceDAO {
               
         } else {
             uint256 amountToSEND = project.amount * PRECISION;
-        
+            console.log(" in cancel came to the eth");
+         console.log("address(this).balance",address(this).balance);
+         console.log("amountToSEND",amountToSEND );
             project.isCanceled = true;
             (bool success, ) = payable(project.creatorOrOwner).call{
-                value: amountToSEND
-            }("");
+                value: amountToSEND }("");
             require(success, "cancelTheProject eth Refund failed");
+
+            console.log("amountToSEND",amountToSEND);
             
         }
         
@@ -477,6 +488,8 @@ contract FreeLanceDAO {
     function withdrawTheProject(uint256 projectId) public {
         Project storage project = idToProject[projectId];
         require(block.timestamp > project.deadline, "Deadline has not passed");
+        console.log("msg.sender",msg.sender);
+        console.log("project owner:", idToProject[projectId].creatorOrOwner);
         require(
             project.creatorOrOwner == msg.sender,
             "only project owner can call this"
@@ -602,13 +615,13 @@ contract FreeLanceDAO {
     function getProjectById(
         uint256 projectId
     ) public view returns (Project memory) {
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "Invalid project ID");
         return idToProject[projectId];
     }
 
     // Getter to check if a project is picked by any freelancer
     function isProjectPicked(uint256 projectId) public view returns (bool) {
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "Invalid project ID");
         return isProjectPickedByAnyFreelancer[projectId];
     }
 
@@ -625,7 +638,7 @@ contract FreeLanceDAO {
         uint256 projectId,
         address freelancer
     ) public view returns (bool) {
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "Invalid project ID");
         return hasFreelancerApplied[projectId][freelancer];
     }
 
@@ -633,7 +646,7 @@ contract FreeLanceDAO {
     function isProjectSelectedByOwner(
         uint256 projectId
     ) public view returns (bool) {
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "Invalid project ID");
         return isProjectSelected[projectId];
     }
 
@@ -661,7 +674,7 @@ contract FreeLanceDAO {
 
     // Getter to check if a project has a dispute
     function hasDispute(uint256 projectId) public view returns (bool) {
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "Invalid project ID");
         return disputes[projectId];
     }
 
@@ -679,13 +692,13 @@ contract FreeLanceDAO {
 
     // Getter to check if a project is completed
     function isProjectCompleted(uint256 projectId) public view returns (bool) {
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "Invalid project ID");
         return idToProject[projectId].completed;
     }
 
     // Getter to check if a project is canceled
     function isProjectCanceled(uint256 projectId) public view returns (bool) {
-        require(projectId < totalProjects, "Invalid project ID");
+        require(projectId <= totalProjects, "Invalid project ID");
         return idToProject[projectId].isCanceled;
     }
 

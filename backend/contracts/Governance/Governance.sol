@@ -93,6 +93,10 @@ contract MyGovernor is
         return super._executor();
     }
 
+    function getExecutor() public view returns (address) {
+         return _executor(); 
+    }
+
     function supportsInterface(bytes4 interfaceId)
         public
         view
