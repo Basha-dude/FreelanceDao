@@ -330,7 +330,7 @@ contract FreeLanceDAO {
 
         if (project.isUsd) {
             uint256 pricefromFeed = priceOfEthInUsd();
-            console.log(" in cancel came to the usd");
+            // console.log(" in cancel came to the usd");
 
             //7500
              uint256 needToPay = project.amount * PRECISION  * PRECISION / pricefromFeed * ADDITIONAL_FEED_PRECISION ;
@@ -342,15 +342,15 @@ contract FreeLanceDAO {
               
         } else {
             uint256 amountToSEND = project.amount * PRECISION;
-            console.log(" in cancel came to the eth");
-         console.log("address(this).balance",address(this).balance);
-         console.log("amountToSEND",amountToSEND );
+        //     console.log(" in cancel came to the eth");
+        //  console.log("in cancel contract balance before",address(this).balance);
+        //  console.log("in cancel in contract amountToSEND",amountToSEND );
             project.isCanceled = true;
             (bool success, ) = payable(project.creatorOrOwner).call{
                 value: amountToSEND }("");
             require(success, "cancelTheProject eth Refund failed");
 
-            console.log("amountToSEND",amountToSEND);
+            // console.log("in cancel contract balance after",address(this).balance);
             
         }
         
@@ -488,8 +488,8 @@ contract FreeLanceDAO {
     function withdrawTheProject(uint256 projectId) public {
         Project storage project = idToProject[projectId];
         require(block.timestamp > project.deadline, "Deadline has not passed");
-        console.log("msg.sender",msg.sender);
-        console.log("project owner:", idToProject[projectId].creatorOrOwner);
+        // console.log("msg.sender",msg.sender);
+        // console.log("project owner:", idToProject[projectId].creatorOrOwner);
         require(
             project.creatorOrOwner == msg.sender,
             "only project owner can call this"
@@ -502,42 +502,68 @@ contract FreeLanceDAO {
         );
 
         project.isCanceled = true;
-        console.log("from the contract msg.sender:", msg.sender);
-        console.log(" from the contract msg.sender project.creatorOrOwner:", project.creatorOrOwner);
+        // console.log("from the contract msg.sender:", msg.sender);
+        // console.log(" from the contract msg.sender project.creatorOrOwner:", project.creatorOrOwner);
 
         if (project.isUsd) {
             uint256 balanceBefore = address(this).balance;
-            console.log("balanceBefore from the contract",balanceBefore);
+            // console.log("balanceBefore from the contract",balanceBefore);
             uint256 pricefromFeed = priceOfEthInUsd();
-              console.log("pricefromFeed from the contract ",pricefromFeed);
-              console.log("project.amount * PRECISION  * PRECISION",project.amount * PRECISION  * PRECISION);
-              console.log("pricefromFeed * ADDITIONAL_FEED_PRECISION",pricefromFeed * ADDITIONAL_FEED_PRECISION);
+            //   console.log("pricefromFeed from the contract ",pricefromFeed);
+            //   console.log("project.amount * PRECISION  * PRECISION",project.amount * PRECISION  * PRECISION);
+            //   console.log("pricefromFeed * ADDITIONAL_FEED_PRECISION",pricefromFeed * ADDITIONAL_FEED_PRECISION);
               uint256 numerator = project.amount * PRECISION  * PRECISION ;
               uint256 denominator = pricefromFeed * ADDITIONAL_FEED_PRECISION;
              uint256 needToPay = numerator / denominator;
-             console.log(" in contract Amount to pay in ETH:", needToPay);
+            //  console.log(" in contract Amount to pay in ETH:", needToPay);
             uint256 balanceAfter = address(this).balance;
 
             //   (bool sucess,) = payable(project.creatorOrOwner).call{value: needToPay}("");
             //   require(sucess);
             //   console.log("sucess",sucess);
 
-            (bool success,) = msg.sender.call{value: needToPay}("");
-            require(success);
+            (bool success, ) = payable(project.creatorOrOwner).call{
+                value: needToPay }("");
+            require(success, "in  eth in withdraw the project Refund failed");
+
+            // (bool success,) = msg.sender.call{value: needToPay}("");
+            // require(success);
 
 
               uint256 balanceafter = address(this).balance;
-              console.log("balanceafter from the contract",balanceafter);
+            //   console.log("balanceafter from the contract",balanceafter);
               
-              
+              // NEED TO GO THIS 
         } else {
+
+
             uint256 amountToSEND = project.amount * PRECISION;
-        
+        //     console.log(" in WITHDRAW THE PROJECT came to the eth");
+        //  console.log("in WITHDRAW THE PROJECT contract balance before",address(this).balance);
+        //  console.log("in WITHDRAW THE PROJECT in contract amountToSEND",amountToSEND );
             project.isCanceled = true;
-            (bool success, ) = msg.sender.call{
-                value: amountToSEND
-            }("");
-            require(success, " withdrawTheProject eth Refund failed");
+            (bool success, ) = payable(project.creatorOrOwner).call{
+                value: amountToSEND }("");
+            require(success, "WITHDRAW THE PROJECT eth Refund failed");
+
+            // console.log("in WITHDRAW THE PROJECT contract balance after",address(this).balance);
+            // uint256 balanceBefore = address(this).balance;
+            // console.log("contract  balance before",balanceBefore);
+
+            // uint256 amountToSEND = project.amount * PRECISION ;
+            // console.log("amountToSEND",amountToSEND);
+        
+            // project.isCanceled = true;
+            // // (bool success, ) = payable(project.creatorOrOwner).call{
+            // //     value: amountToSEND }("");
+            // // require(success, "cancel The Project eth Refund failed");
+
+            // (bool success, ) = payable(project.creatorOrOwner).call{
+            //     value: amountToSEND }("");
+            // require(success, "WITHDRAW eth Refund failed");
+
+            // uint256 balanceafter = address(this).balance;
+            // console.log("contract  balance after",balanceafter);
             
     }
     }         

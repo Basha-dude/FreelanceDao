@@ -14,7 +14,7 @@ describe("FreeLanceDAO", function () {
     owner, PROPOSERS1, PROPOSERS2, PROPOSERS3,
      EXECUTORS1, EXECUTORS2, EXECUTORS3,
       timeLock,creator,ETHUSDPrice,mockV3Aggregator
-      ,freelancer2,freelancer3;
+      ,freelancer2,freelancer3, newCreator
 
       const freelancer1Name = "freelancer1";
       const freelancer2Name = "freelancer2";
@@ -57,7 +57,7 @@ describe("FreeLanceDAO", function () {
   let amountInUsd3 = 7500
 
   before(async function () {
-    [owner,client1, PROPOSERS1,creator, PROPOSERS2, PROPOSERS3, EXECUTORS1, EXECUTORS2, EXECUTORS3,freelancer1,freelancer2,freelancer3] = await ethers.getSigners();
+    [owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3, EXECUTORS1, EXECUTORS2, EXECUTORS3,freelancer1,freelancer2,freelancer3] = await ethers.getSigners();
     
 
     const MockV3Aggregator = await ethers.getContractFactory("MockV3Aggregator");
@@ -330,7 +330,7 @@ await freeLanceDAO.connect(freelancer1).enrollFreelancer(freelancer1Name,skills,
 await freeLanceDAO.connect(freelancer2).enrollFreelancer(freelancer2Name,skills,bio,4500,true,{value:ethers.parseEther("1.5")});   
 await freeLanceDAO.connect(freelancer3).enrollFreelancer(freelancer3Name,skills,bio,4500,false,{value:ethers.parseEther("1")});   
 const profile = await freeLanceDAO.freelancerProfiles(freelancer1);
-console.log("Rating after enrollment:", profile.rating.toString());
+// console.log("Rating after enrollment:", profile.rating.toString());
 
 
 
@@ -390,15 +390,15 @@ it("cancel the project", async () => {
 // console.log("selectedFreelancer in test:", selectedFreelancer);
 
 const balanceBefore = await ethers.provider.getBalance(creator.address)
-console.log("balanceBefore",balanceBefore);
-console.log("from the test creator.address",creator.address);
+// console.log("balanceBefore",balanceBefore);
+// console.log("from the test creator.address",creator.address);
 
   const cancelledOrNot = await freeLanceDAO.connect(creator).cancelTheProject(3);
   let PROJECT = await freeLanceDAO.idToProject(3);
   expect(PROJECT.isCanceled).to.equal(true);
 
   const balanceAfter = await ethers.provider.getBalance(creator.address);
-     console.log("balanceAfter",balanceAfter);
+    //  console.log("balanceAfter",balanceAfter);
 
 });
 it("should revert apply For The Project", async function () {    
@@ -480,13 +480,11 @@ it("should revert apply For The Project", async function () {
    
  })
 
- it.skip("should withdrawTheProject",async () => {
+ it("should withdrawTheProject",async () => {
 
   const balanceBefore = await ethers.provider.getBalance(creator.address)
-  console.log("balanceBefore",balanceBefore);
-  console.log("from the test creator.address",creator.address);
-  
-  
+  // console.log(" creator balanceBefore in test ",balanceBefore);
+  // console.log("from the test creator.address",creator.address);
    const createTx = await freeLanceDAO.connect(creator).createProject(
     Project4Name, 
     ProjectType, 
@@ -497,45 +495,34 @@ it("should revert apply For The Project", async function () {
     { value: (ethers.parseEther("5.1")) }
 );
 
-const createReceipt = await createTx.wait();
+
+const afterCreatingProject = await ethers.provider.getBalance(creator.address)
+// console.log(" creator afterCreatingProject in test ",afterCreatingProject);
+
 
 await ethers.provider.send("evm_increaseTime",[7300])
 
-const tx = await freeLanceDAO.connect(creator).withdrawTheProject(4,{ gasLimit: 10000000 });
+const tx = await freeLanceDAO.connect(creator).withdrawTheProject(4);
 const receipt = await tx.wait();
-console.log("Transaction status:", receipt.status);
+// console.log("Transaction status:", receipt.status);
+const balanceAfter = await ethers.provider.getBalance(creator.address)
+  // console.log(" creator balanceAfter in test",balanceAfter);
 
 
 // Calculate gas used
 const gasUsed = receipt.gasUsed * receipt.gasPrice;
 
-
-
-const actualChange = balanceAfter - balanceBefore + gasUsed;
-    
-console.log("Balance Change (including gas):", actualChange);
-console.log("Gas fees paid:", gasUsed);
-
-//   expect(actualChange).to.be.closeTo(
-//     ethers.parseEther("3"),
-//     ethers.parseEther("0.01") // Allow small deviation
-// );
-
-const balanceChange = balanceAfter - balanceBefore;
-const totalBalanceChange = balanceChange + gasUsed ;
-
 let PROJECT = await freeLanceDAO.getProjectById(4)
   expect(PROJECT.isCanceled).to.be.equal(true)
 
-console.log("Total Balance Change (including gas):", totalBalanceChange);
-console.log("Gas fees paid:", gasUsed);
-console.log("project.creatorOrOwner:", PROJECT.creatorOrOwner);
-console.log("creator.address:", creator.address);
-
-
-  
+// console.log("Total Balance Change (including gas):", totalBalanceChange);
+// console.log("Gas fees paid:", gasUsed);
+// console.log("project.creatorOrOwner:", PROJECT.creatorOrOwner);
+// console.log("creator.address:", creator.address);
 
  })
+
+ 
 
    })
 
