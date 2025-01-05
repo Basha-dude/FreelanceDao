@@ -48,7 +48,7 @@ describe("FreeLanceDAO", function () {
 
   const ETHUSDPriceFeed = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
   const PROPOSERS = [];
-  const EXECUTORS = [];
+  let EXECUTORS = [];
   const VotingDelay = 7200; // 1 day
   const VotingPeriod = 50400; // 1 week
   const address1 ='0x0000000000000000000000000000000000000001'
@@ -57,15 +57,15 @@ describe("FreeLanceDAO", function () {
   let amountInUsd3 = 7500
 
   before(async function () {
-    [owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3, EXECUTORS1, EXECUTORS2, EXECUTORS3,freelancer1,freelancer2,freelancer3] = await ethers.getSigners();
+    [deployer,owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3,freelancer1,freelancer2,freelancer3] = await ethers.getSigners();
     
 
     const MockV3Aggregator = await ethers.getContractFactory("MockV3Aggregator");
-      mockV3Aggregator = await MockV3Aggregator.deploy(DECIMALS,ETH_USD_PRICE);
+      mockV3Aggregator = await MockV3Aggregator.connect(deployer).deploy(DECIMALS,ETH_USD_PRICE);
 
     // Deploy Governance Token
     const GovernanceToken = await ethers.getContractFactory("GovernanceToken");
-    governanceToken = await GovernanceToken.deploy(mockV3Aggregator.target, 100);
+    governanceToken = await GovernanceToken.connect(deployer).deploy(mockV3Aggregator.target, 100);
     
     // Mint tokens for proposers
     await governanceToken.connect(PROPOSERS1).mint(4, false, { value: ethers.parseEther("4") });
@@ -76,49 +76,23 @@ describe("FreeLanceDAO", function () {
     PROPOSERS.push(PROPOSERS2.address);
     PROPOSERS.push(PROPOSERS3.address);
     
-    // Mint tokens for executors
-    await governanceToken.connect(EXECUTORS1).mint(10, false, { value: ethers.parseEther("10") });
-    await governanceToken.connect(EXECUTORS2).mint(10, false, { value: ethers.parseEther("10") });
-    await governanceToken.connect(EXECUTORS3).mint(10, false, { value: ethers.parseEther("10") });
-    
-    EXECUTORS.push(EXECUTORS1.address);
-    EXECUTORS.push(EXECUTORS2.address);
-    EXECUTORS.push(EXECUTORS3.address);
-    
-    // Check balance
-    const balance = await governanceToken.balanceOf(PROPOSERS1.address);
-    const PROPOSERS2balance = await governanceToken.balanceOf(PROPOSERS2.address);
-    const PROPOSERS3balance = await governanceToken.balanceOf(PROPOSERS3.address);
-
-    // console.log("Balance of PROPOSERS1:", balance.toString());
-    // console.log("Balance of PROPOSERS2balance:", PROPOSERS2balance.toString());
-    // console.log("Balance of PROPOSERS3balance:", PROPOSERS3balance.toString());
-
-    const EXECUTORS1Balance = await governanceToken.balanceOf(EXECUTORS1.address);
-    const EXECUTORS2Balance = await governanceToken.balanceOf(EXECUTORS2.address);
-    const EXECUTORS3balance = await governanceToken.balanceOf(EXECUTORS3.address);
-
-    // console.log("Balance of EXECUTORS1Balance:", EXECUTORS1Balance.toString());
-    // console.log("Balance of EXECUTORS2Balance:", EXECUTORS2Balance.toString());
-    // console.log("Balance of EXECUTORS3balance:", EXECUTORS3balance.toString());
-    
     // Deploy TimeLock with corrected admin address
     const TimeLock = await ethers.getContractFactory("TimeLock");
-    timeLock = await TimeLock.deploy(
+    timeLock = await TimeLock.connect(deployer).deploy(
       VotingDelay,
       PROPOSERS,
       EXECUTORS,
-      ethers.ZeroAddress  // Using ZeroAddress instead of "address(0)"
+      deployer
     );
     
     // Deploy Governor
     const MyGovernor = await ethers.getContractFactory("MyGovernor");
-    myGovernor = await MyGovernor.deploy(governanceToken.target, timeLock.target);
+    myGovernor = await MyGovernor.connect(deployer).deploy(governanceToken.target, timeLock.target);
     
 
     // Deploy FreeLanceDAO
     const FreeLanceDAO = await ethers.getContractFactory("FreeLanceDAO");
-    freeLanceDAO = await FreeLanceDAO.deploy(mockV3Aggregator, timeLock.target);
+    freeLanceDAO = await FreeLanceDAO.connect(deployer).deploy(mockV3Aggregator, timeLock.target);
  
 });
 
@@ -131,24 +105,13 @@ describe("FreeLanceDAO", function () {
       expect(await freeLanceDAO.target).to.be.properAddress;
     });
 
-    it("Should set correct initial balances", async function () {
-      const proposer1Balance = await governanceToken.balanceOf(PROPOSERS1.address);
-      expect(proposer1Balance).to.equal(4);
-      
-      const executor1Balance = await governanceToken.balanceOf(EXECUTORS1.address);
-      expect(executor1Balance).to.equal(10);
-    });
     it("Should set correct initial voting delay", async function () {
       const VotingDelayH = await myGovernor.votingDelay();
       // console.log("VotingDelayH",VotingDelayH);
       
       expect(VotingDelayH).to.equal(VotingDelay);
     });
-    it("Should set correct initial voting delay", async function () {
-      const votingPeriodH = await myGovernor.votingPeriod();
-      // console.log("votingPeriodH",votingPeriodH);
-      expect(votingPeriodH).to.equal(VotingPeriod);
-    });
+  
     it("Should set correct  pricefeed ", async function () {
       const priceFeedH = await freeLanceDAO.getPriceFeedAddress();
       // console.log("votingPeriodH",priceFeedH);
@@ -360,17 +323,11 @@ expect(freelancerCount).to.equal(3);
 it("should selectingFreelancer",async function () {
   let appliedFreelancers =  await freeLanceDAO.getFreelancersForProject(1)
   expect(appliedFreelancers.length).to.be.greaterThan(0)
-  //  console.log("appliedFreelancers.length:", appliedFreelancers.length);
    let returnedAddress
-    returnedAddress = await freeLanceDAO.connect(creator).selectingFreelancer(1);
-  //  console.log("returnedAddress from fucntion in test.:", returnedAddress.address);
- 
+    returnedAddress = await freeLanceDAO.connect(creator).selectingFreelancer(1); 
    const selectedFreelancer =  await freeLanceDAO.getSelectedFreelancer(1)
-  // console.log("selectedFreelancer in test:", selectedFreelancer);
   const allfreelancerforAppliedProject =await freeLanceDAO.getFreelancersForProject(1);
-  // console.log("allfreelancerforAppliedProject in test:", allfreelancerforAppliedProject);
-  // console.log("freelancer1.:", freelancer1.address);
-  // console.log("freelancer2.:", freelancer2.address);
+ 
   expect(selectedFreelancer).to.be.equal(freelancer1)
 
 })
@@ -378,27 +335,18 @@ it("cancel the project", async () => {
 
   await freeLanceDAO.connect(freelancer3).applyForTheProject(3);
   await freeLanceDAO.connect(freelancer2).applyForTheProject(3);
-  // console.log("freelancer3",freelancer3.address);
-  // console.log("freelancer2",freelancer2.address);
-
   await freeLanceDAO.connect(creator).selectingFreelancer(3);
 
   let appliedFreelancers =  await freeLanceDAO.getFreelancersForProject(3)
-  //  console.log("appliedFreelancers.length:", appliedFreelancers.length);
 
  const selectedFreelancer =  await freeLanceDAO.getSelectedFreelancer(3)
-// console.log("selectedFreelancer in test:", selectedFreelancer);
 
 const balanceBefore = await ethers.provider.getBalance(creator.address)
-// console.log("balanceBefore",balanceBefore);
-// console.log("from the test creator.address",creator.address);
-
-  const cancelledOrNot = await freeLanceDAO.connect(creator).cancelTheProject(3);
-  let PROJECT = await freeLanceDAO.idToProject(3);
+ const cancelledOrNot = await freeLanceDAO.connect(creator).cancelTheProject(3);
+ let PROJECT = await freeLanceDAO.idToProject(3);
   expect(PROJECT.isCanceled).to.equal(true);
 
   const balanceAfter = await ethers.provider.getBalance(creator.address);
-    //  console.log("balanceAfter",balanceAfter);
 
 });
 it("should revert apply For The Project", async function () {    
@@ -483,8 +431,6 @@ it("should revert apply For The Project", async function () {
  it("should withdrawTheProject",async () => {
 
   const balanceBefore = await ethers.provider.getBalance(creator.address)
-  // console.log(" creator balanceBefore in test ",balanceBefore);
-  // console.log("from the test creator.address",creator.address);
    const createTx = await freeLanceDAO.connect(creator).createProject(
     Project4Name, 
     ProjectType, 
@@ -497,16 +443,11 @@ it("should revert apply For The Project", async function () {
 
 
 const afterCreatingProject = await ethers.provider.getBalance(creator.address)
-// console.log(" creator afterCreatingProject in test ",afterCreatingProject);
-
-
 await ethers.provider.send("evm_increaseTime",[7300])
 
 const tx = await freeLanceDAO.connect(creator).withdrawTheProject(4);
 const receipt = await tx.wait();
-// console.log("Transaction status:", receipt.status);
 const balanceAfter = await ethers.provider.getBalance(creator.address)
-  // console.log(" creator balanceAfter in test",balanceAfter);
 
 
 // Calculate gas used
@@ -514,20 +455,11 @@ const gasUsed = receipt.gasUsed * receipt.gasPrice;
 
 let PROJECT = await freeLanceDAO.getProjectById(4)
   expect(PROJECT.isCanceled).to.be.equal(true)
-
-// console.log("Total Balance Change (including gas):", totalBalanceChange);
-// console.log("Gas fees paid:", gasUsed);
-// console.log("project.creatorOrOwner:", PROJECT.creatorOrOwner);
-// console.log("creator.address:", creator.address);
-
  })
-
- 
-
    })
 
    describe('TESTING GOVERNANCE CONTRACT NOT TOKEN', () => { 
-    it("checking timeLock address",async ()=>{
+    it(" GOVERNANCE checking timeLock address",async ()=>{
       // console.log("timeLock.target",timeLock.target);
       // console.log("myGovernor.target",myGovernor.target);
 
@@ -535,28 +467,39 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
     expect(timeLocksAddress).to.be.equal(timeLock.target)
     })
 
-    it("executor should be timelock", async()=> {
+    it("GOVERNANCE executor should be timelock", async()=> {
       const executor  = await myGovernor.getExecutor()
       expect(executor).to.be.equal(timeLock.target)
     })
     
-    it("checking name for governance ",async ()=>{
+    it("GOVERNANCE checking name for governance ",async ()=>{
       const name =  await myGovernor.name()
       expect(name).to.be.equal("FreelanceGovernance")
      
       })
 
-      it("checking votingDelay for governance ",async ()=>{
+    it("GOVERNANCE checking votingDelay for governance ",async ()=>{
         const votingDelay =  await myGovernor.votingDelay()
         expect(votingDelay).to.be.equal(VotingDelay)
         // console.log("votingDelay",votingDelay);
         
         })
-        it("checking votingPeriod for governance ",async ()=>{
+    it("GOVERNANCE checking votingPeriod for governance ",async ()=>{
           const votingPeriod =  await myGovernor.votingPeriod()
           expect(votingPeriod).to.be.equal(VotingPeriod)
           // console.log("VotingPeriod",VotingPeriod);
           })
+
+    it("GOVERNANCE Should set correct initial voting delay", async function () {
+            const votingPeriodH = await myGovernor.votingPeriod();
+            // console.log("votingPeriodH",votingPeriodH);
+            expect(votingPeriodH).to.equal(VotingPeriod);
+          });
+
+    it("GOVERNANCE should return timelock as daoGovernance",async () => {
+        const TimeLock = await freeLanceDAO.daoGovernance()
+        expect(TimeLock).to.be.equal(timeLock.target)
+    })
 
         
 
