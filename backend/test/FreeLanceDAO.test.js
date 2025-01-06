@@ -93,6 +93,7 @@ describe("FreeLanceDAO", function () {
     // Deploy FreeLanceDAO
     const FreeLanceDAO = await ethers.getContractFactory("FreeLanceDAO");
     freeLanceDAO = await FreeLanceDAO.connect(deployer).deploy(mockV3Aggregator, timeLock.target);
+    
  
 });
 
@@ -500,11 +501,61 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
         const TimeLock = await freeLanceDAO.daoGovernance()
         expect(TimeLock).to.be.equal(timeLock.target)
     })
+    
+    // it(" GOVERNANCE:- proposing ",async ()=> {
+    //         const targets = []
+    //         const values = [0]
+    //         const calldatas = [];
+            
+    //         const encodedFunctionCall  = freeLanceDAO.interface.encodeFunctionData("setPlatformFee",[4]) 
+    //         calldatas.push(encodedFunctionCall)
+    //         const description = "Proposal #1";
+    //         targets.push(freeLanceDAO.target)
 
-        
+    //         const proposeTx = await myGovernor.propose(targets, values, calldatas, description);
+    //           console.log("proposeTx",proposeTx);
+              
+    //          // Wait for the transaction receipt
+    // const proposeReceipt = await proposeTx.wait(1);
+    //         // const proposalId = proposeReceipt.events[0].args.proposalId;
+    //         // console.log("proposalId",proposalId);
 
-      
 
+
+    //          // Wait for transaction to be mined
+    // // const proposeReceipt = await proposeTx.wait();
+    
+    // // Find the ProposalCreated event
+    // const proposalCreatedEvent = proposeReceipt.events.find(
+    //   (event) => event.event === "ProposalCreated"
+    // );
+    
+    // // Verify the event exists and has the correct data
+    // expect(proposalCreatedEvent).to.not.be.undefined;
+    // expect(proposalCreatedEvent.args.description).to.equal(description);
+    
+    // // Get the proposal ID from the event
+    // const proposalId = proposalCreatedEvent.args.proposalId;
+    // expect(proposalId).to.not.be.undefined;
+    
+    // // Log the proposal ID
+    // console.log("Proposal ID:", proposalId.toString());
+            
+
+    
+    //         // const proposeReceipt = await proposeTx.wait(1);
+    //         // console.log("Receipt events:", proposeReceipt.events);
+
+
+    //         // const proposeReceipt = await proposeTx.wait(1);
+    //     // console.log("Full Receipt:", JSON.stringify(proposeReceipt, null, 2));
+
+    //       // console.log("Proposal ID:", proposalId);
+            
+            
+
+    // })
+          
 
 
 
@@ -514,7 +565,37 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
 
 
     //TESTING GOVERNANCE CONTRACT NOT TOKEN
-    })
+  
+    it(" GOVERNANCE:- proposing ", async () => {
+      const targets = []
+      const values = [0]
+      const calldatas = [];
+      
+      const encodedFunctionCall = freeLanceDAO.interface.encodeFunctionData("setPlatformFee", [4])
+      calldatas.push(encodedFunctionCall)
+      const description = "Proposal #1";
+      targets.push(freeLanceDAO.target)
+      
+      const proposeTx = await myGovernor.propose(targets, values, calldatas, description);
+      
+      const proposeReceipt = await proposeTx.wait(1);
+      
+      const proposalCreatedEvent = proposeReceipt.logs[0];
+    const proposalId = proposalCreatedEvent.args[0]; // The first argument is the proposalId
+    console.log("Proposal ID:", proposalId);
+
+    let proposalState = await myGovernor.state(proposalId)
+    console.log(`Current Proposal State: ${proposalState}`)
+    // Mine enough blocks to move past voting delay
+      
+// await network.provider.send("hardhat_mine", ["0x1c20"]); // Mine ~7200 blocks
+await network.provider.send("hardhat_mine", [`0x${(7200 + 1).toString(16)}`]);
+let newProposalState = await myGovernor.state(proposalId);
+console.log(`New Proposal State: ${newProposalState}`); // Should be 1 (Active)
+  });
+  
+  
+  })
 
 
 });

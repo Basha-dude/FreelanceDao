@@ -485,7 +485,7 @@ contract FreeLanceDAO {
     }
 
 
-    function withdrawTheProject(uint256 projectId) public {
+    function withdrawTheProject(uint256 projectId) public  {
         Project storage project = idToProject[projectId];
         require(block.timestamp > project.deadline, "Deadline has not passed");
         // console.log("msg.sender",msg.sender);
@@ -568,7 +568,7 @@ contract FreeLanceDAO {
     }
     }         
 
-    function withdraw() public {  
+    function withdraw() public onlyGovernance{  
         uint256 totalContractBalance = address(this).balance;
         require(
             msg.sender == daoGovernance,
