@@ -14,7 +14,7 @@ describe("FreeLanceDAO", function () {
     owner, PROPOSERS1, PROPOSERS2, PROPOSERS3,
      EXECUTORS1, EXECUTORS2, EXECUTORS3,
       timeLock,creator,ETHUSDPrice,mockV3Aggregator
-      ,freelancer2,freelancer3, newCreator
+      ,freelancer2,freelancer3, newCreator,voter
 
       const freelancer1Name = "freelancer1";
       const freelancer2Name = "freelancer2";
@@ -49,15 +49,15 @@ describe("FreeLanceDAO", function () {
   const ETHUSDPriceFeed = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
   const PROPOSERS = [];
   let EXECUTORS = [];
-  const VotingDelay = 7200; // 1 day
-  const VotingPeriod = 50400; // 1 week
+  const VotingDelay = 7200;//(in blocks)  1 day
+  const VotingPeriod = 50400; //(in blocks)// 1 week
   const address1 ='0x0000000000000000000000000000000000000001'
   let amountInUsd = 6000 
   let amountInUsd2 = 9000
   let amountInUsd3 = 7500
 
   before(async function () {
-    [deployer,owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3,freelancer1,freelancer2,freelancer3] = await ethers.getSigners();
+    [deployer,owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3,freelancer1,freelancer2,freelancer3,voter] = await ethers.getSigners();
     
 
     const MockV3Aggregator = await ethers.getContractFactory("MockV3Aggregator");
@@ -71,6 +71,7 @@ describe("FreeLanceDAO", function () {
     await governanceToken.connect(PROPOSERS1).mint(4, false, { value: ethers.parseEther("4") });
     await governanceToken.connect(PROPOSERS2).mint(4, false, { value: ethers.parseEther("4") });
     await governanceToken.connect(PROPOSERS3).mint(4, false, { value: ethers.parseEther("4") });
+    await governanceToken.connect(voter).mint(4,false,{ value: ethers.parseEther("4") })
     
     PROPOSERS.push(PROPOSERS1.address);
     PROPOSERS.push(PROPOSERS2.address);
@@ -592,13 +593,21 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
 await network.provider.send("hardhat_mine", [`0x${(7200 + 1).toString(16)}`]);
 let newProposalState = await myGovernor.state(proposalId);
 console.log(`New Proposal State: ${newProposalState}`); // Should be 1 (Active)
+
+//getting the snapshot of the proposal means which block
+let proposalSnapshot =await myGovernor.proposalSnapshot(proposalId)
+// await myGovernor.connect(voter).castVote(proposalId,1)
+
+
+
+
+
   });
+
   
   
   })
 
 
 });
-
-
 
