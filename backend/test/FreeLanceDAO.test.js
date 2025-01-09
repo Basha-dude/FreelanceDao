@@ -14,7 +14,7 @@ describe("FreeLanceDAO", function () {
     owner, PROPOSERS1, PROPOSERS2, PROPOSERS3,
      EXECUTORS1, EXECUTORS2, EXECUTORS3,
       timeLock,creator,ETHUSDPrice,mockV3Aggregator
-      ,freelancer2,freelancer3, newCreator,voter
+      ,freelancer2,freelancer3, newCreator,voter,proposalId
 
       const freelancer1Name = "freelancer1";
       const freelancer2Name = "freelancer2";
@@ -582,32 +582,66 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
       const proposeReceipt = await proposeTx.wait(1);
       
       const proposalCreatedEvent = proposeReceipt.logs[0];
-    const proposalId = proposalCreatedEvent.args[0]; // The first argument is the proposalId
+     proposalId = proposalCreatedEvent.args[0]; // The first argument is the proposalId
     console.log("Proposal ID:", proposalId);
 
     let proposalState = await myGovernor.state(proposalId)
     console.log(`Current Proposal State: ${proposalState}`)
     // Mine enough blocks to move past voting delay
       
+    console.log("before mining VOTING DELAY the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
+
 // await network.provider.send("hardhat_mine", ["0x1c20"]); // Mine ~7200 blocks
 await network.provider.send("hardhat_mine", [`0x${(7200 + 1).toString(16)}`]);
+
+console.log("after mining  the VOTING DELAY the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
+
 let newProposalState = await myGovernor.state(proposalId);
 console.log(`New Proposal State: ${newProposalState}`); // Should be 1 (Active)
 
 //getting the snapshot of the proposal means which block
-let proposalSnapshot =await myGovernor.proposalSnapshot(proposalId)
-// await myGovernor.connect(voter).castVote(proposalId,1)
+
+/* 
+ need to ask AI that why it gives 7242 as snapshot  
+
+*/
+
+console.log("after getting   the state  the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
+
+let proposalSnapshot = await myGovernor.proposalSnapshot(proposalId)
+console.log("proposalSnapshot:",proposalSnapshot);
+
+console.log("after getting   the snapshot  the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
+
+let votingPower = await myGovernor.getVotes( PROPOSERS1,await ethers.provider.getBlockNumber() - 1)
+console.log("votingPower",votingPower);
+console.log("after checking the  BlockNumber",await ethers.provider.getBlockNumber());
+
+expect(VotingDelay).to.be.lessThan(await ethers.provider.getBlockNumber())
 
 
 
 
+ await governanceToken.connect(PROPOSERS1).delegates(PROPOSERS1.address) 
+ console.log("last before checking the  BlockNumber",await ethers.provider.getBlockNumber());
+
+
+await governanceToken.connect(PROPOSERS1).delegate(PROPOSERS1.address);
+await network.provider.send("evm_mine"); // Mine a block to ensure the state is updated
+const votes = await governanceToken.getVotes(PROPOSERS1.address);
+console.log("After delegating the votes, votingPower:", votes.toString());
+
+const delegatee = await governanceToken.delegates(PROPOSERS1.address);
+console.log("Delegated to:", delegatee);
+
+
+const voteTx = await myGovernor.connect(PROPOSERS1).castVoteWithReason(proposalId, 1, "voted for the ");
+const voteReceipt = await voteTx.wait();
 
   });
 
   
-  
   })
-
 
 });
 
