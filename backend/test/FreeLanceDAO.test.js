@@ -1,7 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = ethers;
-
 /* 
 
 HAS SAMO ISSUE  WHEN THE CREATOR CALLS THE WITHDRAW THE PROJECT FUNCTION,
@@ -60,22 +59,54 @@ describe("FreeLanceDAO", function () {
     [deployer,owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3,freelancer1,freelancer2,freelancer3,voter] = await ethers.getSigners();
     
 
+    // let blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("MockV3Aggregator before mining:", blockNumBefore);
+
     const MockV3Aggregator = await ethers.getContractFactory("MockV3Aggregator");
       mockV3Aggregator = await MockV3Aggregator.connect(deployer).deploy(DECIMALS,ETH_USD_PRICE);
+
+    //   blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("MockV3Aggregator after mining:", blockNumBefore);
 
     // Deploy Governance Token
     const GovernanceToken = await ethers.getContractFactory("GovernanceToken");
     governanceToken = await GovernanceToken.connect(deployer).deploy(mockV3Aggregator.target, 100);
+
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("GovernanceToken after mining:", blockNumBefore);
     
     // Mint tokens for proposers
     await governanceToken.connect(PROPOSERS1).mint(4, false, { value: ethers.parseEther("4") });
+
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("1 governanceToken after mining to proposer:", blockNumBefore);
+
     await governanceToken.connect(PROPOSERS2).mint(4, false, { value: ethers.parseEther("4") });
+
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("2 governanceToken after mining to proposer:", blockNumBefore);
+
     await governanceToken.connect(PROPOSERS3).mint(4, false, { value: ethers.parseEther("4") });
+
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("3 governanceToken after mining to proposer:", blockNumBefore);
+
     await governanceToken.connect(voter).mint(4,false,{ value: ethers.parseEther("4") })
+
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("4 governanceToken after mining to proposer:", blockNumBefore);
     
     PROPOSERS.push(PROPOSERS1.address);
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("1 PUSH TO PROPOSERS:", blockNumBefore);
+    
     PROPOSERS.push(PROPOSERS2.address);
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("2 PUSH TO PROPOSERS:", blockNumBefore);
+
     PROPOSERS.push(PROPOSERS3.address);
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log("3 PUSH TO PROPOSERS:", blockNumBefore);
     
     // Deploy TimeLock with corrected admin address
     const TimeLock = await ethers.getContractFactory("TimeLock");
@@ -85,11 +116,16 @@ describe("FreeLanceDAO", function () {
       EXECUTORS,
       deployer
     );
+
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log(" TimeLock after mining to proposer:", blockNumBefore);
     
     // Deploy Governor
     const MyGovernor = await ethers.getContractFactory("MyGovernor");
     myGovernor = await MyGovernor.connect(deployer).deploy(governanceToken.target, timeLock.target);
     
+    // blockNumBefore = await ethers.provider.getBlockNumber();
+    // console.log(" MyGovernor after mining to proposer:", blockNumBefore);
 
     // Deploy FreeLanceDAO
     const FreeLanceDAO = await ethers.getContractFactory("FreeLanceDAO");
@@ -502,72 +538,11 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
         const TimeLock = await freeLanceDAO.daoGovernance()
         expect(TimeLock).to.be.equal(timeLock.target)
     })
-    
-    // it(" GOVERNANCE:- proposing ",async ()=> {
-    //         const targets = []
-    //         const values = [0]
-    //         const calldatas = [];
-            
-    //         const encodedFunctionCall  = freeLanceDAO.interface.encodeFunctionData("setPlatformFee",[4]) 
-    //         calldatas.push(encodedFunctionCall)
-    //         const description = "Proposal #1";
-    //         targets.push(freeLanceDAO.target)
-
-    //         const proposeTx = await myGovernor.propose(targets, values, calldatas, description);
-    //           console.log("proposeTx",proposeTx);
-              
-    //          // Wait for the transaction receipt
-    // const proposeReceipt = await proposeTx.wait(1);
-    //         // const proposalId = proposeReceipt.events[0].args.proposalId;
-    //         // console.log("proposalId",proposalId);
-
-
-
-    //          // Wait for transaction to be mined
-    // // const proposeReceipt = await proposeTx.wait();
-    
-    // // Find the ProposalCreated event
-    // const proposalCreatedEvent = proposeReceipt.events.find(
-    //   (event) => event.event === "ProposalCreated"
-    // );
-    
-    // // Verify the event exists and has the correct data
-    // expect(proposalCreatedEvent).to.not.be.undefined;
-    // expect(proposalCreatedEvent.args.description).to.equal(description);
-    
-    // // Get the proposal ID from the event
-    // const proposalId = proposalCreatedEvent.args.proposalId;
-    // expect(proposalId).to.not.be.undefined;
-    
-    // // Log the proposal ID
-    // console.log("Proposal ID:", proposalId.toString());
-            
-
-    
-    //         // const proposeReceipt = await proposeTx.wait(1);
-    //         // console.log("Receipt events:", proposeReceipt.events);
-
-
-    //         // const proposeReceipt = await proposeTx.wait(1);
-    //     // console.log("Full Receipt:", JSON.stringify(proposeReceipt, null, 2));
-
-    //       // console.log("Proposal ID:", proposalId);
-            
-            
-
-    // })
-          
-
-
-
-
-
-
-
-
-    //TESTING GOVERNANCE CONTRACT NOT TOKEN
   
     it(" GOVERNANCE:- proposing ", async () => {
+
+
+
       const targets = []
       const values = [0]
       const calldatas = [];
@@ -576,6 +551,9 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
       calldatas.push(encodedFunctionCall)
       const description = "Proposal #1";
       targets.push(freeLanceDAO.target)
+
+      await governanceToken.connect(PROPOSERS1).delegate(PROPOSERS1.address);
+      await ethers.provider.send("evm_mine"); // Mine a block to update state
       
       const proposeTx = await myGovernor.propose(targets, values, calldatas, description);
       
@@ -616,27 +594,35 @@ console.log("after getting   the snapshot  the  checking the  BlockNumber",await
 let votingPower = await myGovernor.getVotes( PROPOSERS1,await ethers.provider.getBlockNumber() - 1)
 console.log("votingPower",votingPower);
 console.log("after checking the  BlockNumber",await ethers.provider.getBlockNumber());
-
 expect(VotingDelay).to.be.lessThan(await ethers.provider.getBlockNumber())
-
-
-
-
  await governanceToken.connect(PROPOSERS1).delegates(PROPOSERS1.address) 
  console.log("last before checking the  BlockNumber",await ethers.provider.getBlockNumber());
 
 
-await governanceToken.connect(PROPOSERS1).delegate(PROPOSERS1.address);
-await network.provider.send("evm_mine"); // Mine a block to ensure the state is updated
+ // Before casting the vote, ensure the delegation is effective
+const voteTx = await myGovernor.connect(PROPOSERS1).castVoteWithReason(proposalId, 1, "voted for the ");
+const voteReceipt = await voteTx.wait();
+
+// const voteReceipt = await voteTx.wait();
+const votesOfproposal = await myGovernor.proposalVotes(proposalId);
+console.log("Immediate Vote Count after voting:", votesOfproposal);
+
 const votes = await governanceToken.getVotes(PROPOSERS1.address);
 console.log("After delegating the votes, votingPower:", votes.toString());
 
 const delegatee = await governanceToken.delegates(PROPOSERS1.address);
 console.log("Delegated to:", delegatee);
 
+//
+const  votesfor = await myGovernor.proposalVotes(proposalId)
+console.log("votesfor",votesfor);
+let votingofProposer = await governanceToken.getVotes(PROPOSERS1.address);
+console.log("votingofProposer",votingofProposer);
 
-const voteTx = await myGovernor.connect(PROPOSERS1).castVoteWithReason(proposalId, 1, "voted for the ");
-const voteReceipt = await voteTx.wait();
+/* 
+ voting dhi chudaali
+
+*/
 
   });
 
