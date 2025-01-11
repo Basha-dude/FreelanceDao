@@ -117,6 +117,7 @@ describe("FreeLanceDAO", function () {
       deployer
     );
 
+  
     // blockNumBefore = await ethers.provider.getBlockNumber();
     // console.log(" TimeLock after mining to proposer:", blockNumBefore);
     
@@ -549,30 +550,37 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
       
       const encodedFunctionCall = freeLanceDAO.interface.encodeFunctionData("setPlatformFee", [4])
       calldatas.push(encodedFunctionCall)
-      const description = "Proposal #1";
+      const descriptionOfProposal = "Proposal #1";
       targets.push(freeLanceDAO.target)
 
-      await governanceToken.connect(PROPOSERS1).delegate(PROPOSERS1.address);
-      await ethers.provider.send("evm_mine"); // Mine a block to update state
+      // await governanceToken.connect(PROPOSERS1).delegate(PROPOSERS1.address);
+      // await ethers.provider.send("evm_mine"); // Mine a block to update state
       
-      const proposeTx = await myGovernor.propose(targets, values, calldatas, description);
+      const proposeTx = await myGovernor.connect(PROPOSERS1).propose(targets, values, calldatas, descriptionOfProposal);
       
       const proposeReceipt = await proposeTx.wait(1);
       
       const proposalCreatedEvent = proposeReceipt.logs[0];
      proposalId = proposalCreatedEvent.args[0]; // The first argument is the proposalId
-    console.log("Proposal ID:", proposalId);
+    // console.log("Proposal ID:", proposalId);
 
     let proposalState = await myGovernor.state(proposalId)
     console.log(`Current Proposal State: ${proposalState}`)
     // Mine enough blocks to move past voting delay
-      
-    console.log("before mining VOTING DELAY the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
 
-// await network.provider.send("hardhat_mine", ["0x1c20"]); // Mine ~7200 blocks
-await network.provider.send("hardhat_mine", [`0x${(7200 + 1).toString(16)}`]);
+    
+    // console.log("before mining VOTING DELAY the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
+    
+    await governanceToken.connect(PROPOSERS1).delegate(PROPOSERS1.address);
+    await governanceToken.connect(PROPOSERS2).delegate(PROPOSERS2.address)
+    await governanceToken.connect(PROPOSERS3).delegate(PROPOSERS3.address)
 
-console.log("after mining  the VOTING DELAY the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
+    await ethers.provider.send("evm_mine");
+    await ethers.provider.send("evm_mine");
+    // await network.provider.send("hardhat_mine", ["0x1c20"]); // Mine ~7200 blocks
+    await network.provider.send("hardhat_mine", [`0x${(7200 + 1).toString(16)}`]);
+
+// console.log("after mining  the VOTING DELAY the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
 
 let newProposalState = await myGovernor.state(proposalId);
 console.log(`New Proposal State: ${newProposalState}`); // Should be 1 (Active)
@@ -584,24 +592,23 @@ console.log(`New Proposal State: ${newProposalState}`); // Should be 1 (Active)
 
 */
 
-console.log("after getting   the state  the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
+// console.log("after getting   the state  the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
 
 let proposalSnapshot = await myGovernor.proposalSnapshot(proposalId)
-console.log("proposalSnapshot:",proposalSnapshot);
+// console.log("proposalSnapshot:",proposalSnapshot);
 
-console.log("after getting   the snapshot  the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
+// console.log("after getting   the snapshot  the  checking the  BlockNumber",await ethers.provider.getBlockNumber());
 
 let votingPower = await myGovernor.getVotes( PROPOSERS1,await ethers.provider.getBlockNumber() - 1)
 console.log("votingPower",votingPower);
-console.log("after checking the  BlockNumber",await ethers.provider.getBlockNumber());
+// console.log("after checking the  BlockNumber",await ethers.provider.getBlockNumber());
 expect(VotingDelay).to.be.lessThan(await ethers.provider.getBlockNumber())
  await governanceToken.connect(PROPOSERS1).delegates(PROPOSERS1.address) 
- console.log("last before checking the  BlockNumber",await ethers.provider.getBlockNumber());
+//  console.log("last before checking the  BlockNumber",await ethers.provider.getBlockNumber());
 
 
  // Before casting the vote, ensure the delegation is effective
-const voteTx = await myGovernor.connect(PROPOSERS1).castVoteWithReason(proposalId, 1, "voted for the ");
-const voteReceipt = await voteTx.wait();
+
 
 // const voteReceipt = await voteTx.wait();
 const votesOfproposal = await myGovernor.proposalVotes(proposalId);
@@ -610,14 +617,91 @@ console.log("Immediate Vote Count after voting:", votesOfproposal);
 const votes = await governanceToken.getVotes(PROPOSERS1.address);
 console.log("After delegating the votes, votingPower:", votes.toString());
 
-const delegatee = await governanceToken.delegates(PROPOSERS1.address);
-console.log("Delegated to:", delegatee);
+let delegatee = await governanceToken.delegates(PROPOSERS1.address);
+// console.log("Delegated to:", delegatee);
 
 //
-const  votesfor = await myGovernor.proposalVotes(proposalId)
+let  votesfor = await myGovernor.proposalVotes(proposalId)
 console.log("votesfor",votesfor);
 let votingofProposer = await governanceToken.getVotes(PROPOSERS1.address);
-console.log("votingofProposer",votingofProposer);
+console.log("votingofProposer1",votingofProposer);
+
+//////////////
+//VOTING   ///
+/////////////
+const voteTx = await myGovernor.connect(PROPOSERS1).castVoteWithReason(proposalId, 1, "voted for the ");
+const voteReceipt = await voteTx.wait();
+
+const voteSecondTx = await myGovernor.connect(PROPOSERS2).castVoteWithReason(proposalId, 1, "Proposer2 voted for the ");
+const voteSecondTxReceipt = await voteSecondTx.wait();
+
+const voteThirdTx = await myGovernor.connect(PROPOSERS3).castVoteWithReason(proposalId, 1, "Proposer3 voted for the ");
+const voteThirdTxReceipt = await voteThirdTx.wait();
+
+const votesOfPROPOSER1 = await governanceToken.getVotes(PROPOSERS1.address);
+console.log("After delegating the votes, votesOfPROPOSER1:",  votesOfPROPOSER1.toString());
+
+const votesOfPROPOSER2 = await governanceToken.getVotes(PROPOSERS2.address);
+console.log("After delegating the votes, votesOfPROPOSER2:",  votesOfPROPOSER2.toString());
+
+const votesOfPROPOSER3 = await governanceToken.getVotes(PROPOSERS3.address);
+console.log("After delegating the votes, votesOfPROPOSER3:",  votesOfPROPOSER3.toString());
+
+  votesfor = await myGovernor.proposalVotes(proposalId)
+console.log("votesfor",votesfor);
+
+ delegatee = await governanceToken.delegates(PROPOSERS2.address);
+console.log("Delegated to2:", delegatee);
+ delegatee = await governanceToken.delegates(PROPOSERS3.address);
+console.log("Delegated to3:", delegatee);
+ delegatee = await governanceToken.delegates(PROPOSERS1.address);
+console.log("Delegated to1:", delegatee);
+
+proposalState = await myGovernor.state(proposalId)
+    console.log(`Current Proposal State: ${proposalState}`)
+
+    await network.provider.send("hardhat_mine", [`0x${(50400 + 1).toString(16)}`]);
+    proposalState = await myGovernor.state(proposalId)
+    console.log(`Current Proposal State: ${proposalState}`)
+
+
+//////////////
+//QUEUE   ///
+/////////////
+const bytes = ethers.toUtf8Bytes(descriptionOfProposal);
+console.log(bytes);
+
+const descriptionHash = ethers.keccak256(bytes)
+// console.log("descriptionHash",descriptionHash);
+
+console.log(freeLanceDAO.target);
+console.log(timeLock.target);
+console.log(myGovernor.target);
+console.log(governanceToken.target);
+console.log(PROPOSERS1.address);
+console.log(deployer.address);
+
+
+//PROPOSER_ROLE should be myGoverner contract
+const PROPOSER_ROLE = await timeLock.PROPOSER_ROLE();
+await timeLock.connect(deployer).grantRole(PROPOSER_ROLE, myGovernor.target);
+
+const QueueTx = await myGovernor.queue(targets,values,calldatas,descriptionHash)
+ const QueueTxReceipt = await QueueTx.wait()
+
+ //should give false
+ const hasRole = await timeLock.hasRole(PROPOSER_ROLE, deployer.address);
+console.log("Does deployer have PROPOSER_ROLE?", hasRole);
+
+ proposalState = await myGovernor.state(proposalId)
+ console.log(`Current Proposal State: ${proposalState}`)
+
+
+
+
+     
+
+
 
 /* 
  voting dhi chudaali
