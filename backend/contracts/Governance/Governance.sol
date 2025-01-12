@@ -99,6 +99,16 @@ contract MyGovernor is
          return _executor(); 
     }
 
+    // //written testing purpose only
+    // function cancel(
+    //     address[] memory targets,
+    //     uint256[] memory values,
+    //     bytes[] memory calldatas,
+    //     bytes32 descriptionHash
+    // ) public returns(uint256)  {
+    //     return _cancel(targets,values,calldatas,descriptionHash); 
+    // }
+
     function supportsInterface(bytes4 interfaceId)
         public
         view

@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const { BigNumber } = ethers;
 /* 
 
@@ -13,7 +13,7 @@ describe("FreeLanceDAO", function () {
     owner, PROPOSERS1, PROPOSERS2, PROPOSERS3,
      EXECUTORS1, EXECUTORS2, EXECUTORS3,
       timeLock,creator,ETHUSDPrice,mockV3Aggregator
-      ,freelancer2,freelancer3, newCreator,voter,proposalId
+      ,freelancer2,freelancer3, newCreator,voter,proposalId,PROPOSERS4
 
       const freelancer1Name = "freelancer1";
       const freelancer2Name = "freelancer2";
@@ -56,7 +56,7 @@ describe("FreeLanceDAO", function () {
   let amountInUsd3 = 7500
 
   before(async function () {
-    [deployer,owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3,freelancer1,freelancer2,freelancer3,voter] = await ethers.getSigners();
+    [deployer,owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3,PROPOSERS4,freelancer1,freelancer2,freelancer3,voter] = await ethers.getSigners();
     
 
     // let blockNumBefore = await ethers.provider.getBlockNumber();
@@ -88,6 +88,7 @@ describe("FreeLanceDAO", function () {
 
     await governanceToken.connect(PROPOSERS3).mint(4, false, { value: ethers.parseEther("4") });
 
+    
     // blockNumBefore = await ethers.provider.getBlockNumber();
     // console.log("3 governanceToken after mining to proposer:", blockNumBefore);
 
@@ -548,7 +549,7 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
       const values = [0]
       const calldatas = [];
       
-      const encodedFunctionCall = freeLanceDAO.interface.encodeFunctionData("setPlatformFee", [4])
+      const encodedFunctionCall = freeLanceDAO.interface.encodeFunctionData("setPlatformFee", [5])
       calldatas.push(encodedFunctionCall)
       const descriptionOfProposal = "Proposal #1";
       targets.push(freeLanceDAO.target)
@@ -556,13 +557,16 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
       // await governanceToken.connect(PROPOSERS1).delegate(PROPOSERS1.address);
       // await ethers.provider.send("evm_mine"); // Mine a block to update state
       
+    //////////////
+   //PROPOSAL   ///
+   /////////////
       const proposeTx = await myGovernor.connect(PROPOSERS1).propose(targets, values, calldatas, descriptionOfProposal);
       
       const proposeReceipt = await proposeTx.wait(1);
       
       const proposalCreatedEvent = proposeReceipt.logs[0];
      proposalId = proposalCreatedEvent.args[0]; // The first argument is the proposalId
-    // console.log("Proposal ID:", proposalId);
+    console.log("Proposal ID first :", proposalId);
 
     let proposalState = await myGovernor.state(proposalId)
     console.log(`Current Proposal State: ${proposalState}`)
@@ -574,6 +578,7 @@ let PROJECT = await freeLanceDAO.getProjectById(4)
     await governanceToken.connect(PROPOSERS1).delegate(PROPOSERS1.address);
     await governanceToken.connect(PROPOSERS2).delegate(PROPOSERS2.address)
     await governanceToken.connect(PROPOSERS3).delegate(PROPOSERS3.address)
+
 
     await ethers.provider.send("evm_mine");
     await ethers.provider.send("evm_mine");
@@ -617,6 +622,9 @@ console.log("Immediate Vote Count after voting:", votesOfproposal);
 const votes = await governanceToken.getVotes(PROPOSERS1.address);
 console.log("After delegating the votes, votingPower:", votes.toString());
 
+const votesOf = await governanceToken.getVotes(PROPOSERS4.address);
+console.log("After delegating the votes, PROPOSER4:", votesOf.toString());
+
 let delegatee = await governanceToken.delegates(PROPOSERS1.address);
 // console.log("Delegated to:", delegatee);
 
@@ -635,7 +643,7 @@ const voteReceipt = await voteTx.wait();
 const voteSecondTx = await myGovernor.connect(PROPOSERS2).castVoteWithReason(proposalId, 1, "Proposer2 voted for the ");
 const voteSecondTxReceipt = await voteSecondTx.wait();
 
-const voteThirdTx = await myGovernor.connect(PROPOSERS3).castVoteWithReason(proposalId, 1, "Proposer3 voted for the ");
+const voteThirdTx = await myGovernor.connect(PROPOSERS4).castVoteWithReason(proposalId, 1, "Proposer4 voted for the ");
 const voteThirdTxReceipt = await voteThirdTx.wait();
 
 const votesOfPROPOSER1 = await governanceToken.getVotes(PROPOSERS1.address);
@@ -648,14 +656,14 @@ const votesOfPROPOSER3 = await governanceToken.getVotes(PROPOSERS3.address);
 console.log("After delegating the votes, votesOfPROPOSER3:",  votesOfPROPOSER3.toString());
 
   votesfor = await myGovernor.proposalVotes(proposalId)
-console.log("votesfor",votesfor);
+// console.log("votesfor",votesfor);
 
  delegatee = await governanceToken.delegates(PROPOSERS2.address);
-console.log("Delegated to2:", delegatee);
+// console.log("Delegated to2:", delegatee);
  delegatee = await governanceToken.delegates(PROPOSERS3.address);
-console.log("Delegated to3:", delegatee);
+// console.log("Delegated to3:", delegatee);
  delegatee = await governanceToken.delegates(PROPOSERS1.address);
-console.log("Delegated to1:", delegatee);
+// console.log("Delegated to1:", delegatee);
 
 proposalState = await myGovernor.state(proposalId)
     console.log(`Current Proposal State: ${proposalState}`)
@@ -672,14 +680,14 @@ const bytes = ethers.toUtf8Bytes(descriptionOfProposal);
 console.log(bytes);
 
 const descriptionHash = ethers.keccak256(bytes)
-// console.log("descriptionHash",descriptionHash);
+console.log("descriptionHash First",descriptionHash);
 
-console.log(freeLanceDAO.target);
-console.log(timeLock.target);
-console.log(myGovernor.target);
-console.log(governanceToken.target);
-console.log(PROPOSERS1.address);
-console.log(deployer.address);
+// console.log(freeLanceDAO.target);
+// console.log(timeLock.target);
+// console.log(myGovernor.target);
+// console.log(governanceToken.target);
+// console.log(PROPOSERS1.address);
+// console.log(deployer.address);
 
 
 //PROPOSER_ROLE should be myGoverner contract
@@ -691,22 +699,16 @@ const QueueTx = await myGovernor.queue(targets,values,calldatas,descriptionHash)
 
  //should give false
  const hasRole = await timeLock.hasRole(PROPOSER_ROLE, deployer.address);
-console.log("Does deployer have PROPOSER_ROLE?", hasRole);
 
  proposalState = await myGovernor.state(proposalId)
- console.log(`Current Proposal State: ${proposalState}`)
-
-
-
-
-
-
 await network.provider.send("hardhat_mine", [`0x${(7200 + 1).toString(16)}`]);
 
 // Advance time
 await network.provider.send("evm_mine"); 
 
-
+//////////////
+//EXECUTE  ///
+/////////////
  const  EXECUTOR_ROLE =  await timeLock.EXECUTOR_ROLE();
   await timeLock.connect(deployer).grantRole(EXECUTOR_ROLE,ethers.ZeroAddress) 
 
@@ -718,22 +720,120 @@ await network.provider.send("evm_mine");
 
 
   proposalState = await myGovernor.state(proposalId)
-  console.log(`Current Proposal State: ${proposalState}`)
  
+const fee = await freeLanceDAO.getPlatformFee()
 
 
+  });
+
+  it.skip("it should cancel the proposal",async () => {
+    const targets = []
+    targets.push(freeLanceDAO.target)
+    const values =[0]
+    const calldatas = []
+    const encodedFunctionCall = freeLanceDAO.interface.encodeFunctionData("withdraw")
+    calldatas.push(encodedFunctionCall)
+    const description2 = "#proposal 2"
+
+     ///////////////////
+    // PROPOSAL      //
+    ///////////////////
+   const ProposeTx = await myGovernor.connect(PROPOSERS1).propose(targets,values,calldatas,description2)
+   const ProposeReciept = await ProposeTx.wait(1) 
+
+   const proposalCreatedEvent = ProposeReciept.logs[0];
+  let proposalId = proposalCreatedEvent.args[0];
+  console.log("Proposal ID:", proposalId);
+   
+  //  console.log("proposalId",proposalId);
+
+   let state = await myGovernor.state(proposalId)
+      console.log("state",state);
+
+      await network.provider.send("hardhat_mine", [`0x${(7200 + 1).toString(16)}`]);
+
+      state = await myGovernor.state(proposalId)
+      console.log("state",state);
+
+   ///////////////////
+    // VOTING      //
+    ///////////////////  
+
+  const voteFirstTx =  await myGovernor.connect(PROPOSERS1).castVote(proposalId,1)
+  const voteReceipt = await voteFirstTx.wait()
+
+  const voteSecondTx =  await myGovernor.connect(PROPOSERS2).castVote(proposalId,1)
+  const voteSecondReceipt = await voteSecondTx.wait()
+
+  const voteThirdTx =  await myGovernor.connect(PROPOSERS3).castVote(proposalId,1)
+  const voteThirdReceipt= await voteThirdTx.wait()
+
+  let  votesfor = await myGovernor.proposalVotes(proposalId)
+console.log("votesfor",votesfor);
+         
+await network.provider.send("hardhat_mine",[`0x${(50400 + 1).toString(16)}`])
+
+ state = await myGovernor.state(proposalId)
+      console.log("state",state);
+
+    ///////////////////
+    // QUEUE         //
+    ///////////////////
+    await ethers.provider.send("evm_mine");
+   await ethers.provider.send("evm_mine");
+    const bytes = ethers.toUtf8Bytes(description2)
+     const descriptionHash = ethers.keccak256(bytes)
+
+    const QueueTx = await myGovernor.queue(targets,values,calldatas,descriptionHash)
+     await QueueTx.wait()
+
+     state = await myGovernor.state(proposalId)
+      console.log("state",state);
+
+///////////////////
+//   cancel      //
+///////////////////
+
+
+const PROPOSER_ROLE = await timeLock.PROPOSER_ROLE();
+await timeLock.connect(deployer).grantRole(PROPOSER_ROLE,myGovernor.target);
+
+const  EXECUTOR_ROLE =  await timeLock.EXECUTOR_ROLE();
+  await timeLock.connect(deployer).grantRole(EXECUTOR_ROLE,myGovernor.target) 
+
+  const hasProposerRole = await timeLock.hasRole(PROPOSER_ROLE, myGovernor.target);
+console.log("Has Proposer Role:", hasProposerRole);
+
+const hasExecutorRole = await timeLock.hasRole(EXECUTOR_ROLE, myGovernor.target);
+console.log("Has Executor Role:", hasExecutorRole);
+
+const CANCELLER_ROLE = await timeLock.CANCELLER_ROLE();
+await timeLock.connect(deployer).grantRole(CANCELLER_ROLE, myGovernor.target);
+
+const balanceBefore = await ethers.provider.getBalance(freeLanceDAO.target)
+console.log("balanceBefore",balanceBefore.toString());
+
+const CancelTx = await myGovernor.cancel(targets,values,calldatas,descriptionHash)
+        await CancelTx.wait()
+
+        state = await myGovernor.state(proposalId)
+        console.log("state",state);
+
+        
+
+
+
+
+  
+    
 
 
      
+})
 
+ it("should defeat the proposal ",async() =>{
 
-
-/* 
- voting dhi chudaali
-
-*/
-
-  });
+ })
 
   
   })
