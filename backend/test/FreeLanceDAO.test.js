@@ -699,6 +699,31 @@ console.log("Does deployer have PROPOSER_ROLE?", hasRole);
 
 
 
+
+
+await network.provider.send("hardhat_mine", [`0x${(7200 + 1).toString(16)}`]);
+
+// Advance time
+await network.provider.send("evm_mine"); 
+
+
+ const  EXECUTOR_ROLE =  await timeLock.EXECUTOR_ROLE();
+  await timeLock.connect(deployer).grantRole(EXECUTOR_ROLE,ethers.ZeroAddress) 
+
+ const ExecuteTx = await myGovernor.execute(targets,values,calldatas,descriptionHash)
+  const ExecuteTxReciept = await ExecuteTx.wait()
+
+  // Get the timelock delay (assuming it is accessible from the timelock contract)
+// Mine a block to apply the time change
+
+
+  proposalState = await myGovernor.state(proposalId)
+  console.log(`Current Proposal State: ${proposalState}`)
+ 
+
+
+
+
      
 
 
