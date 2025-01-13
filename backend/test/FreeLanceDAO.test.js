@@ -726,7 +726,7 @@ const fee = await freeLanceDAO.getPlatformFee()
 
   });
 
-  it.skip("it should cancel the proposal",async () => {
+    it.skip("it should cancel the proposal",async () => {
     const targets = []
     targets.push(freeLanceDAO.target)
     const values =[0]
@@ -817,26 +817,69 @@ const CancelTx = await myGovernor.cancel(targets,values,calldatas,descriptionHas
         await CancelTx.wait()
 
         state = await myGovernor.state(proposalId)
-        console.log("state",state);
+        console.log("state",state);   
+    })
 
-        
+    it("should defeat the proposal ",async() =>{
+  const targets =[]
+  targets.push(freeLanceDAO.target)
+  const values =[0]
+  const calldatas = []
+ const encodedFunctionCall =  freeLanceDAO.interface.encodeFunctionData("withdraw",[])
+ calldatas.push(encodedFunctionCall)
+   const description3 = "#proposal 3"
 
+   ///////////////////
+    // PROPOSAL      //
+    ///////////////////
 
-
-
-  
-    
-
-
+   const proposeTx = await myGovernor.propose(targets,values,calldatas,description3)
+    const proposeReceipt =  await proposeTx.wait(1)
+     const logs = proposeReceipt.logs[0]
+     let proposalId = logs.args[0]
+     console.log("proposalId3",proposalId);
      
-})
 
- it("should defeat the proposal ",async() =>{
+     let state = await myGovernor.state(proposalId)
+      console.log("state",state);
 
- })
+
+
+  ///////////////////
+    // VOTING      //
+    ///////////////////
+  await network.provider.send("hardhat_mine",[`0x${(7200 +1).toString(16)}`])
+
+  state = await myGovernor.state(proposalId)
+  console.log("state",state);
+
+    await myGovernor.connect(PROPOSERS1).castVote(proposalId,0)
+    let votesOfproposal = await myGovernor.proposalVotes(proposalId);
+    console.log("Immediate Vote Count after voting:", votesOfproposal); 
+    await myGovernor.connect(PROPOSERS2).castVote(proposalId,0)
+    await myGovernor.connect(PROPOSERS3).castVote(proposalId,0)
+    votesOfproposal = await myGovernor.proposalVotes(proposalId);
+    console.log("Immediate Vote Count after voting:", votesOfproposal); 
 
   
+  ///////////////////
+  // DEAFEATED    //
+  ///////////////////
+
+    await network.provider.send("hardhat_mine",[`0x${(50400 +1).toString(16)}`])
+
+    state = await myGovernor.state(proposalId)
+    console.log("state",state);
+
+    expect(state).to.be.equal(3)
+
+     })
+
   })
+
+  describe('TESTING GOVERNANCE  TOKEN', async() => { 
+     
+   })
 
 });
 
