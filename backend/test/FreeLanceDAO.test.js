@@ -13,7 +13,8 @@ describe("FreeLanceDAO", function () {
     owner, PROPOSERS1, PROPOSERS2, PROPOSERS3,
      EXECUTORS1, EXECUTORS2, EXECUTORS3,
       timeLock,creator,ETHUSDPrice,mockV3Aggregator
-      ,freelancer2,freelancer3, newCreator,voter,proposalId,PROPOSERS4
+      ,freelancer2,freelancer3, newCreator,voter,proposalId,PROPOSERS4,
+      voter1,voter2,voter3
 
       const freelancer1Name = "freelancer1";
       const freelancer2Name = "freelancer2";
@@ -38,6 +39,7 @@ describe("FreeLanceDAO", function () {
       const amount = ethers.parseEther("9")
       const amount2 = 5
       const amount3 = 3000
+      
       const isPaidToContract = false;
       const isPaidToFreelancer = false
       const isCanceled = false
@@ -56,7 +58,8 @@ describe("FreeLanceDAO", function () {
   let amountInUsd3 = 7500
 
   before(async function () {
-    [deployer,owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3,PROPOSERS4,freelancer1,freelancer2,freelancer3,voter] = await ethers.getSigners();
+    [deployer,owner,client1, PROPOSERS1,creator,newCreator, PROPOSERS2, PROPOSERS3,PROPOSERS4,
+      voter1,voter2,voter3 , freelancer1,freelancer2,freelancer3,voter] = await ethers.getSigners();
     
 
     // let blockNumBefore = await ethers.provider.getBlockNumber();
@@ -875,11 +878,72 @@ const CancelTx = await myGovernor.cancel(targets,values,calldatas,descriptionHas
 
      })
 
-  })
+    })
 
-  describe('TESTING GOVERNANCE  TOKEN', async() => { 
+    describe('TESTING GOVERNANCE  TOKEN', async() => { 
      
+      it("total supply ",async() => {
+        const totalSupply = await governanceToken.totalSupply();
+        console.log("totalSupply", totalSupply);
+      })
+
+      it.skip("Token  price ",async() => {
+        const Token_Price = await governanceToken.getToken_Price();
+        console.log("Token_Price", Token_Price.toString());
+        //1 000 000 000 000 000 000n
+        //1 000 000 000 000 000 000n
+        console.log("ethers.parseEther(1)",(ethers.parseEther("1")).toString());
+        
+        expect(Token_Price.toString()).to.be.equal((ethers.parseEther("1")))
+      })
+      it("MINT THE GOVERNACE TOKEN IN ETHER",async() => {
+         await governanceToken.connect(voter1).mint(3,false,{value: ethers.parseEther("3")})
+         const balanceBefore = await governanceToken.balanceOf(voter1.address)
+           console.log("balanceBefore",balanceBefore);
+          //  expect(balanceBefore).to.be.equal(3)
+      })
+
+      /* 
+        using usd will have precesion
+      
+      */
+      it("MINT THE GOVERNACE TOKEN IN USD",async() => {
+        let amountInUsd3 = 7500
+
+        await governanceToken.connect(voter2).mint(10500,true,{value: ethers.parseEther("4")})
+        const balanceBefore = await governanceToken.balanceOf(voter2.address)
+          console.log("balanceBefore",balanceBefore);
+     })
+
+
+     it("AFTER TRANSFER  VOTING SHOULD TRANSFER",async() => {
+
+      const balanceBefore = await governanceToken.balanceOf(voter2.address)
+      console.log("balanceBefore",balanceBefore);
+      const balanceBeforeOfPROPOSERS1 = await governanceToken.balanceOf(PROPOSERS1.address)
+        console.log("balanceBeforeOfPROPOSERS1",balanceBeforeOfPROPOSERS1);
+
+        await governanceToken.connect(PROPOSERS1).transfer(voter2.address,4)
+       await governanceToken.connect(voter2).delegate(voter2.address);
+
+       await network.provider.send("evm_mine"); 
+         await network.provider.send("evm_increaseTime", [60]); // Increase time by 60 seconds
+       await network.provider.send("evm_mine");
+
+      const balanceAfter = await governanceToken.balanceOf(voter2.address)
+        console.log("balanceAfter",balanceAfter);
+    
+        const balanceAfterOfPROPOSERS1 = await governanceToken.balanceOf(PROPOSERS1.address)
+        console.log("balanceAfterOfPROPOSERS1",balanceAfterOfPROPOSERS1);
+
+        let votingPower = await myGovernor.getVotes( PROPOSERS1,await ethers.provider.getBlockNumber() -1)
+         console.log("votingPower of proposer1",votingPower);
+         votingPower = await myGovernor.getVotes( voter2,await ethers.provider.getBlockNumber() -1)
+         console.log("votingPower of voter2",votingPower);
    })
+
+
+    });
 
 });
 
