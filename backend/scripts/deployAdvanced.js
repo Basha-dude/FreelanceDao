@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
-const {ethers} = require("hardhat")
+const {ethers} = require("hardhat");
+const { execFileSync } = require("child_process");
 
 
 async function deployContract(factoryName,...args) {
@@ -31,12 +32,34 @@ async function main() {
 
 
     const deploymentData = {
-        GovernanceTokenAddress,
-        timeLockAddress,
-        myGovernorAddress,
-        freeLanceDAOAddress
+        GovernanceTokenAddress:GovernanceTokenAddress,
+        timeLockAddress:timeLockAddress,
+        myGovernorAddress:myGovernorAddress,
+        freeLanceDAOAddress:freeLanceDAOAddress
     }
     console.log("DeploymentData:-", JSON.stringify(deploymentData,null,2))
+
+    
+    const dirPath = path.join(__dirname,"..","..","frontend","src","abi")
+      if (!fs.existsSync(dirPath)) {
+           fs.mkdirSync(dirPath,{recursive:true})
+        
+      }
+
+      fs.writeFileSync(path.join(dirPath,"config.json"),JSON.stringify(deploymentData,null,2))
+          console.log("Deployment configuration saved to frontend/src/abi/config.json");
+
+      // Define the path to the frontend src/abi folder
+    // const dirPath = path.join(__dirname, "..", "..", "frontend", "src", "abi");
+    
+    // // Create the directory if it doesn't exist
+    // if (!fs.existsSync(dirPath)) {
+    //     fs.mkdirSync(dirPath, { recursive: true });
+    // }
+
+    // // Write the deployment data to a JSON file
+    // fs.writeFileSync(path.join(dirPath, "deployment-config.json"), JSON.stringify(deploymentData, null, 2));
+    // console.log("Deployment configuration saved to frontend/src/abi/deployment-config.json");
 
 }
 
