@@ -1,69 +1,89 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
-
-describe("FreeLanceDAO", function () {
-  let freeLanceDAO,timeLock, myGovernor, governanceToken, owner, signer1, signer2, signer3;
-  const ETHUSDPriceFeed = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"; // Example address
-  const VotingDelay = 7200;
-  let PROPOSERS =[];
-  let EXECUTORS =[];
-  
-
-  before(async function () {
-    [owner, signer1, signer2, signer3] = await ethers.getSigners();
+const fs = require("fs");
+const path = require("path");
+const {ethers} = require("hardhat")
+async function main() {
+    console.log("Starting deployment...");
+    let minDelay, proposers, executors,admin
+    proposers =[]
+    executors =[]
+    minDelay = 7200
 
 
-    const TimeLock = await ethers.getContractFactory("TimeLock");
-    timeLock = await TimeLock.deploy(
-      VotingDelay,
-      PROPOSERS,
-      EXECUTORS,
-      owner
-    );
-    // Deploy GovernanceToken contract
+    const adminSigner = await ethers.getSigners();
+    admin = adminSigner[0].address
+    
+    // Deploy SustainabilityCoin
     const GovernanceToken = await ethers.getContractFactory("GovernanceToken");
-    governanceToken = await GovernanceToken.deploy(ethers.parseEther("1000000")); // 1M tokens
-    await governanceToken.deployed();
-    console.log("GovernanceToken deployed at:", governanceToken.target);
+    const initialSupply = ethers.parseUnits("1000000", 18); // 1,000,000 SUS tokens with 18 decimals
+    const pricefeed = "0x694AA1769357215DE4FAC081bf1f309aDC325306"
 
-    // Deploy MyGovernor contract
-    const MyGovernor = await ethers.getContractFactory("MyGovernor");
-    myGovernor = await MyGovernor.deploy(governanceToken.address, timeLock.target);
-    await myGovernor.deployed();
-    console.log("MyGovernor deployed at:", myGovernor.target);
+   
+  
+    const governanceToken = await GovernanceToken.deploy(pricefeed,initialSupply);
+    await governanceToken.waitForDeployment();
+    
+    const GovernanceTokenAddress = await governanceToken.getAddress();
+   
+    // OR Option 2: Using provider (if you want ETH balance)
+    const ethBalance = await ethers.provider.getBalance(admin);
+    console.log("TOKEN BALANCE OF DEPLOYER(ADMIN)", ethers.formatEther(ethBalance));
 
-    // Deploy FreeLanceDAO contract
+ 
+//TIMELOCK
+ const TimeLock = await ethers.getContractFactory("TimeLock")
+ const timeLock = await TimeLock.deploy(minDelay,proposers,executors,admin)
+ await timeLock.waitForDeployment();
+ const timeLockAddress = await timeLock.getAddress();
+
+
+
+    const MyGovernor = await ethers.getContractFactory("MyGovernor")
+    const myGovernor = await MyGovernor.deploy(GovernanceTokenAddress,timeLock)
+    await myGovernor.waitForDeployment();
+    const myGovernorAddress = await myGovernor.getAddress();
+
+
+
+    // Deploy EcoLedger as an upgradeable contract
     const FreeLanceDAO = await ethers.getContractFactory("FreeLanceDAO");
-    freeLanceDAO = await FreeLanceDAO.deploy(ETHUSDPriceFeed, timeLock.target);
-    await freeLanceDAO.deployed();
-    console.log("FreeLanceDAO deployed at:", freeLanceDAO.target);
-  });
+    const freeLanceDAO = await FreeLanceDAO.deploy(pricefeed,timeLock);
+    await freeLanceDAO.waitForDeployment();
+    const freeLanceDAOAddress = await freeLanceDAO.getAddress();
 
+    // Output the addresses for further usage
+    console.log("Deployment completed successfully!");
+    console.log(`GovernanceTokenAddress Address: ${GovernanceTokenAddress}`);
+    console.log(`freeLanceDAOAddress Address${freeLanceDAOAddress}`);
+    console.log(`timeLockAddress Adress${timeLockAddress}`);
+    console.log(`myGoverner${myGovernorAddress}`);
+    
+    
+    
 
+    // Prepare the deployment data
+    const deploymentData = {
+        GovernanceTokenAddress: GovernanceTokenAddress,
+        freeLanceDAOAddress:freeLanceDAOAddress,
+        timeLockAddress:timeLockAddress,
+        myGovernorAddress:myGovernorAddress
+    };
 
-  describe("Governance Functionality", function () {
-    it("Should allow token holders to delegate votes", async function () {
-      await governanceToken.connect(owner).delegate(signer1.address);
-      const votes = await governanceToken.getVotes(signer1.address);
-      expect(votes).to.equal(ethers.parseEther("1000000")); // All votes delegated to signer1
+    // // Define the path to the frontend src/abi folder
+    // const dirPath = path.join(__dirname, "..", "..", "frontend", "src", "abi");
+    
+    // // Create the directory if it doesn't exist
+    // if (!fs.existsSync(dirPath)) {
+    //     fs.mkdirSync(dirPath, { recursive: true });
+    // }
+
+    // // Write the deployment data to a JSON file
+    // fs.writeFileSync(path.join(dirPath, "deployment-config.json"), JSON.stringify(deploymentData, null, 2));
+    // console.log("Deployment configuration saved to frontend/src/abi/deployment-config.json");
+}
+
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error("Error in deployment:", error);
+        process.exit(1);
     });
-
-    it("Should allow proposing and voting on proposals", async function () {
-      const targets = [signer2.address];
-      const values = [0];
-      const calldatas = [ethers.utils.hexlify([])];
-      const description = "Proposal #1";
-
-      // Propose
-      const tx = await myGovernor.connect(signer1).propose(targets, values, calldatas, description);
-      const receipt = await tx.wait();
-      const proposalId = receipt.events.find((e) => e.event === "ProposalCreated").args.proposalId;
-
-      // Vote
-      await myGovernor.connect(signer1).castVote(proposalId, 1); // 1 = For
-
-      const proposalState = await myGovernor.state(proposalId);
-      expect(proposalState).to.equal(1); // Active
-    });
-  });
-});

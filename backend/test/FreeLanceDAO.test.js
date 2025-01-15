@@ -930,7 +930,7 @@ const CancelTx = await myGovernor.cancel(targets,values,calldatas,descriptionHas
          await network.provider.send("evm_increaseTime", [60]); // Increase time by 60 seconds
        await network.provider.send("evm_mine");
 
-      const balanceAfter = await governanceToken.balanceOf(voter2.address)
+      let balanceAfter = await governanceToken.balanceOf(voter2.address)
         console.log("balanceAfter",balanceAfter);
     
         const balanceAfterOfPROPOSERS1 = await governanceToken.balanceOf(PROPOSERS1.address)
@@ -940,7 +940,22 @@ const CancelTx = await myGovernor.cancel(targets,values,calldatas,descriptionHas
          console.log("votingPower of proposer1",votingPower);
          votingPower = await myGovernor.getVotes( voter2,await ethers.provider.getBlockNumber() -1)
          console.log("votingPower of voter2",votingPower);
+
+
+         await governanceToken.connect(deployer).burn(voter2.address,6)
+         await network.provider.send("evm_mine"); 
+         await network.provider.send("evm_increaseTime", [60]); // Increase time by 60 seconds
+       await network.provider.send("evm_mine");
+      
+         votingPower = await myGovernor.getVotes( voter2,await ethers.provider.getBlockNumber() -1)
+         console.log("votingPower of voter2",votingPower);
+      
+         balanceAfter = await governanceToken.balanceOf(voter2.address)
+         console.log("balanceAfter of vtoter2",balanceAfter);
    })
+
+  
+
 
 
     });

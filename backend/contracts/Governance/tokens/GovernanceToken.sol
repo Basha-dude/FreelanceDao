@@ -4,11 +4,13 @@ pragma solidity ^0.8.9;
 import  "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 import "hardhat/console.sol";
 
 
 
-contract GovernanceToken is ERC20Votes {
+contract GovernanceToken is ERC20Votes,Ownable {
      uint256 TOKEN_PRICE = 1 ether;
      AggregatorV3Interface public priceFeed;
      uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
@@ -59,6 +61,10 @@ contract GovernanceToken is ERC20Votes {
     }
 
     function _burn(address account, uint256 amount) internal override(ERC20Votes) {
+        super._burn(account, amount);
+    }
+
+    function burn(address account, uint256 amount) public onlyOwner {
         super._burn(account, amount);
     }
 
