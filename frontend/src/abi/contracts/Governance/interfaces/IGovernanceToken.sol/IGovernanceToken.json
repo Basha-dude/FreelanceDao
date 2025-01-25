@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IGovernanceToken",
+  "sourceName": "contracts/Governance/interfaces/IGovernanceToken.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea264697066735822122092019a4b31de33870357833e532850f511ad883af317973c34b10c82b1f8abf964736f6c63430008130033",
+  "deployedBytecode": "0x6080604052600080fdfea264697066735822122092019a4b31de33870357833e532850f511ad883af317973c34b10c82b1f8abf964736f6c63430008130033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

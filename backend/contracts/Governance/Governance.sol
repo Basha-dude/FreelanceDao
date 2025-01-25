@@ -99,7 +99,7 @@ contract MyGovernor is
          return _executor(); 
     }
 
-    // //written testing purpose only
+    // //written testing purpose only because we this public so anyone will cancel it
     // function cancel(
     //     address[] memory targets,
     //     uint256[] memory values,

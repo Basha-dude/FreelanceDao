@@ -9,5 +9,8 @@ module.exports = {
       },
     },
   },
+  paths: {
+    artifacts: "../frontend/src/abi"
+  },
   allowUnlimitedContractSize: true
 }

@@ -84,8 +84,7 @@ contract FreeLanceDAO {
                (,int256 price,,,) = priceFeed.latestRoundData();
             //    console.log("in enrollFreelancer from the contract",uint256(price));  
             //    console.log("in enrollFreelancer uint256(price) * ADDITIONAL_FEED_PRECISION from the contract",uint256(price) * ADDITIONAL_FEED_PRECISION);  
-            //    console.log("in enrollFreelancer _amount * PRECISION from the contract",_amount * PRECISION);  
-                               //4500   * 10000000000000000000               /  3 00000000000     * 10 000 000 000
+            //    console.log("in enrollFreelancer _amount * PRECISION from the contract",_amount * PRECISION);                      //4500   * 10000000000000000000               /  3 00000000000     * 10 000 000 000
             uint256 needToPay=   _amount  * PRECISION * PRECISION  / ( uint256(price)* ADDITIONAL_FEED_PRECISION);  
             // uint256 needToPay = (uint256(price) * ADDITIONAL_FEED_PRECISION * PRECISION) / (_amount * PRECISION);
             // uint256 needToPay = (uint256(price) * ADDITIONAL_FEED_PRECISION) / _amount;
