@@ -13,7 +13,7 @@ const { GovernanceTokenAddress, timeLockAddress, myGovernorAddress, freeLanceDAO
 
 
 
-/* created minimum components ,should create as required */
+/* Enroll has nice but need to make it advanced one*/
 function App() {
   const [wallet, setwallet] = useState("")
   const [contract, setContract] = useState("")
