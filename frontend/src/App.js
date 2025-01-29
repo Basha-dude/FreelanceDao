@@ -2,7 +2,7 @@ import './App.css';
 import Navbar from './components/Navbar';  
 import { ethers } from "ethers";
 import { useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Import Routes and Route
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; 
 import  Create  from "./components/Create";
 import Enroll from './components/Enroll';
 //config.json file is exporting an object as the default export, not named exports.
