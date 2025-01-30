@@ -93,7 +93,7 @@ contract FreeLanceDAO {
             // console.log("in enrollFreelancer needToPay from the contract",needToPay); 
                     } 
                     else {
-            require(msg.value >=  PRECISION, "to enroll need to pay for that ");
+            require(msg.value >= _amount *  PRECISION, "to enroll need to pay for that in eth ");
             // console.log("in enrollFreelancer msg.value from the contract",msg.value);  
             // console.log("in enrollFreelancer PRECISION from the contract",PRECISION);  
 

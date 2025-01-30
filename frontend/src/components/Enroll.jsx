@@ -1,6 +1,6 @@
 import React from 'react'
 
-const Enroll = ({enrollFreelancer,setfreelancerDetails,freelancerDetails}) => {
+const Enroll = ({enrollFreelancerDetails,setfreelancerDetails,freelancerDetails}) => {
   return (
     <div>Enroll As FreeLancer
     <br />
@@ -36,7 +36,7 @@ const Enroll = ({enrollFreelancer,setfreelancerDetails,freelancerDetails}) => {
 
     </input>
 <br/>
-<button onClick={enrollFreelancer}>enroll</button>
+<button onClick={enrollFreelancerDetails}>enroll</button>
 <br/>
 
 

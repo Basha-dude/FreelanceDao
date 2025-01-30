@@ -13,7 +13,7 @@ const { GovernanceTokenAddress, timeLockAddress, myGovernorAddress, freeLanceDAO
 
 
 
-/* Enroll has nice but need to make it advanced one*/
+/* eth completed need to write for the usd */
 function App() {
   const [wallet, setwallet] = useState("")
   const [contract, setContract] = useState("")
@@ -29,7 +29,11 @@ function App() {
   const FreelanceAddress = freeLanceDAOAddress
   const FreelanceAddressAbi = FreeLanceDao.abi
 
+
+
   const connectWallet = async() => {
+    /* i did not know why its happening need to remove the clear activity
+ tab of every account in metamask every time when i re-run the node */
     console.log("wallet");
     try {
       if (window.ethereum) {
@@ -42,9 +46,17 @@ function App() {
      const contractInstance =  new ethers.Contract(FreelanceAddress,FreelanceAddressAbi,signer)
      setContract(contractInstance)
 
+    
+
      setwallet(accounts[0])
      console.log(accounts[0]);
      
+
+     const handleAccountsChanged = async(accounts) => {
+      setwallet(accounts[0]) 
+       }
+    
+    window.ethereum.on("accountsChanged", handleAccountsChanged)
     
          }    
     } catch (error) {
@@ -54,15 +66,52 @@ function App() {
   }
 
 
-  const enrollFreelancer = async() => {
-     console.log("contract",contract); 
-     setfreelancerDetails(freelancerDetails)
-     if (freelancerDetails) {
-      console.log("freelancerDetails",freelancerDetails);
+  const enrollFreelancerDetails = async() => {
+    try {
+
+      console.log("contract",contract); 
+      setfreelancerDetails(freelancerDetails)
+      if (freelancerDetails) {
+       console.log("freelancerDetails",freelancerDetails);
+     const amount =  freelancerDetails.amount
+     console.log("amount",amount); 
+
+     const Tx =  await contract.enrollFreelancer(freelancerDetails.name,freelancerDetails.skills,
       
-     }
+         freelancerDetails.bio,amount,freelancerDetails.isUsd,{value:ethers.parseEther(amount)})
+         await Tx.wait()
+         alert("enroll successful")
+       
+      }
+      
+    } catch (error) {
+      console.log(error);
+      
+    }
+   
 
   }
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   return (
     <Router>
     <div className="App">
@@ -73,7 +122,7 @@ function App() {
     
      
      <Route path='/create' element={<Create />} ></Route>
-     <Route path='/enroll' element={<Enroll enrollFreelancer={enrollFreelancer} 
+     <Route path='/enroll' element={<Enroll enrollFreelancerDetails={enrollFreelancerDetails} 
      setfreelancerDetails={setfreelancerDetails} 
      freelancerDetails={freelancerDetails} />}></Route>
   
