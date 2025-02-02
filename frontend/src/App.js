@@ -72,15 +72,21 @@ function App() {
       console.log("contract",contract); 
       setfreelancerDetails(freelancerDetails)
       if (freelancerDetails) {
-       console.log("freelancerDetails",freelancerDetails);
-     const amount =  freelancerDetails.amount
-     console.log("amount",amount); 
-
-     const Tx =  await contract.enrollFreelancer(freelancerDetails.name,freelancerDetails.skills,
-      
-         freelancerDetails.bio,amount,freelancerDetails.isUsd,{value:ethers.parseEther(amount)})
-         await Tx.wait()
-         alert("enroll successful")
+        if (freelancerDetails.isUsd) {
+          //need to write for the usd
+        }
+        else{
+          console.log("freelancerDetails",freelancerDetails);
+          const amount =  freelancerDetails.amount
+          console.log("amount",amount); 
+     
+          const Tx =  await contract.enrollFreelancer(freelancerDetails.name,freelancerDetails.skills,
+           
+              freelancerDetails.bio,amount,freelancerDetails.isUsd,{value:ethers.parseEther(amount)})
+              await Tx.wait()
+          alert("enroll successful")
+        }
+     
        
       }
       

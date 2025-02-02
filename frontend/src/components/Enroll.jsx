@@ -26,7 +26,7 @@ const Enroll = ({enrollFreelancerDetails,setfreelancerDetails,freelancerDetails}
     <br/>
     <label>IsUsd:</label>
     {/* 
-        to use like this
+        to use like this below
         ```<input type={checkbox} />``` need to have this
         <input type={checkbox} /> 
         because In JSX, curly braces {} are used to embed JavaScript expressions or variables.
