@@ -22,7 +22,7 @@ function App() {
     skills:'',
     bio:'',
     amount:'',
-    isUsd:''
+    isUsd:false
 
   })
 
@@ -72,8 +72,19 @@ function App() {
       console.log("contract",contract); 
       setfreelancerDetails(freelancerDetails)
       if (freelancerDetails) {
+
+        //giving error for the usd code
         if (freelancerDetails.isUsd) {
-          //need to write for the usd
+        //   console.log("logged into usd");
+          
+        //   const AmountToPayForUsd = await contract.calculatingUsdForEnroll(freelancerDetails.amount)
+        //   console.log("USD Amount to Pay:", AmountToPayForUsd.toString());
+
+        //   const TxUsd =  await contract.enrollFreelancer(freelancerDetails.name,freelancerDetails.skills,
+           
+        //     freelancerDetails.bio,freelancerDetails.amount,freelancerDetails.isUsd,{value:AmountToPayForUsd})
+        //     await TxUsd.wait()
+        // alert("enroll successful for usd")
         }
         else{
           console.log("freelancerDetails",freelancerDetails);

@@ -85,10 +85,10 @@ contract FreeLanceDAO {
             //    console.log("in enrollFreelancer from the contract",uint256(price));  
             //    console.log("in enrollFreelancer uint256(price) * ADDITIONAL_FEED_PRECISION from the contract",uint256(price) * ADDITIONAL_FEED_PRECISION);  
             //    console.log("in enrollFreelancer _amount * PRECISION from the contract",_amount * PRECISION);                      //4500   * 10000000000000000000               /  3 00000000000     * 10 000 000 000
-            uint256 needToPay=   _amount  * PRECISION * PRECISION  / ( uint256(price)* ADDITIONAL_FEED_PRECISION);  
+          uint ethToPayForUsd =  calculatingUsdForEnroll(_amount);
             // uint256 needToPay = (uint256(price) * ADDITIONAL_FEED_PRECISION * PRECISION) / (_amount * PRECISION);
             // uint256 needToPay = (uint256(price) * ADDITIONAL_FEED_PRECISION) / _amount;
-            require(msg.value >=  needToPay, "to enroll need to pay for that ");
+            require(msg.value >=  ethToPayForUsd, "to enroll need to pay for that ");
             // console.log("in enrollFreelancer msg.value from the contract",msg.value); 
             // console.log("in enrollFreelancer needToPay from the contract",needToPay); 
                     } 
@@ -111,7 +111,12 @@ contract FreeLanceDAO {
         freelancerRatings[msg.sender] = INITIALRATING;
         freelancers.push(msg.sender);
         isFreelancerEnrolled[msg.sender] = true;
-     }     
+     }    
+     
+     function calculatingUsdForEnroll(uint _amount) public view returns(uint) {
+        (,int256 price,,,) = priceFeed.latestRoundData();
+        return  _amount  * PRECISION * PRECISION  / ( uint256(price)* ADDITIONAL_FEED_PRECISION); 
+     }
 
     function updateGovernance(
         address newGovernanceContract

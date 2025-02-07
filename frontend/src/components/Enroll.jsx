@@ -32,9 +32,21 @@ const Enroll = ({enrollFreelancerDetails,setfreelancerDetails,freelancerDetails}
         because In JSX, curly braces {} are used to embed JavaScript expressions or variables.
         so for using the {} expects and javascript variable or constants
      */}
-    <input type='checkbox' onChange={(e)=> setfreelancerDetails({...freelancerDetails,isUsd:e.target.checked})}>
+    {/* <input type='checkbox' onChange={(e)=> setfreelancerDetails({...freelancerDetails,isUsd:e.target.checked})}>
 
-    </input>
+    </input> */}
+
+    <input 
+        type='checkbox' 
+        checked={freelancerDetails.isUsd || false} 
+        onChange={(e) => {
+          console.log("Checkbox changed:", e.target.checked);
+          setfreelancerDetails({
+            ...freelancerDetails,
+            isUsd: e.target.checked
+          })
+        }}
+      />
 <br/>
 <button onClick={enrollFreelancerDetails}>enroll</button>
 <br/>
