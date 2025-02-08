@@ -118,7 +118,8 @@ contract FreeLanceDAO {
         return  _amount  * PRECISION * PRECISION  / ( uint256(price)* ADDITIONAL_FEED_PRECISION); 
      }
 
-    function updateGovernance(
+
+     function updateGovernance(
         address newGovernanceContract
     ) public onlyGovernance {
         require(

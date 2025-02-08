@@ -9,13 +9,14 @@ async function deployContract(factoryName,...args) {
     const contractName = await ContractName.deploy(...args)
     await contractName.waitForDeployment()
     const address = await contractName.getAddress()
+    console.log("Starting Deployment...");
     console.log(`${factoryName} deployed at: ${address}`);
     return address;
 
 }
 
 async function main() {
-    const pricefeed = "0x694AA1769357215DE4FAC081bf1f309aDC325306"
+    // const pricefeed = "0x694AA1769357215DE4FAC081bf1f309aDC325306"
     let minDelay, proposers, executors,admin
     proposers =[]
     executors =[]
@@ -25,18 +26,21 @@ async function main() {
     admin = adminSigner[0].address
     
     const initialSupply = ethers.parseUnits("10000",18)
-    const GovernanceTokenAddress = await deployContract("GovernanceToken",pricefeed,initialSupply)
+    const PricefeedAddress = await deployContract("MockV3Aggregator",8,2000 * 10**8) // $2000/ETH price
+    const GovernanceTokenAddress = await deployContract("GovernanceToken",PricefeedAddress,initialSupply)
     const timeLockAddress = await deployContract("TimeLock",minDelay,proposers,executors,admin)
     const myGovernorAddress = await deployContract("MyGovernor",GovernanceTokenAddress,timeLockAddress)
-    const freeLanceDAOAddress = await deployContract("FreeLanceDAO",pricefeed,timeLockAddress)
+    const freeLanceDAOAddress = await deployContract("FreeLanceDAO",PricefeedAddress,timeLockAddress)
 
 
     const deploymentData = {
         GovernanceTokenAddress:GovernanceTokenAddress,
         timeLockAddress:timeLockAddress,
         myGovernorAddress:myGovernorAddress,
-        freeLanceDAOAddress:freeLanceDAOAddress
+        freeLanceDAOAddress:freeLanceDAOAddress,
+        PricefeedAddress:PricefeedAddress
     }
+    
     console.log("DeploymentData:-", JSON.stringify(deploymentData,null,2))
 
     
